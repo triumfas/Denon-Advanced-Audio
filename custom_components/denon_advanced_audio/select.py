@@ -32,7 +32,7 @@ MUTE_LEVEL_TO = {"Full": "1", "-40dB": "2", "-20dB": "3"}
 MUTE_LEVEL_FROM = {v: k for k, v in MUTE_LEVEL_TO.items()}
 
 NETWORK_CONTROL_OPTIONS = ["Off", "Always On"]
-NETWORK_CONTROL_TO = {"Off": "1", "Always On": "2"}
+NETWORK_CONTROL_TO = {"Off": "2", "Always On": "1"}
 NETWORK_CONTROL_FROM = {v: k for k, v in NETWORK_CONTROL_TO.items()}
 
 MULTEQ_OPTIONS = ["Reference", "L/R Bypass", "Flat", "Off"]

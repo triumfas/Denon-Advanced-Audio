@@ -84,6 +84,9 @@ class DenonAdvancedAudioApi:
 
     async def async_get_airplay(self):
         text = await self._ajax_get("network", 9)
+        m = re.search(r"<AirPlay[^>]*>.*?<Value[^>]*>([^<]+)</Value>.*?</AirPlay>", text, re.DOTALL)
+        if m:
+            return m.group(1)
         return self._extract(text, "AirPlay")
 
     async def async_set_airplay(self, value: str):
@@ -122,7 +125,7 @@ class DenonAdvancedAudioApi:
         await self._ajax_set("audio", 9, f"<MultEQ>{value}</MultEQ>")
 
     async def async_set_dynamic_eq(self, on: bool):
-        v = "2" if on else "1"
+        v = "1" if on else "2"
         await self._ajax_set("audio", 9, f"<DynamicEQ>{v}</DynamicEQ>")
 
     async def async_set_dynamic_volume(self, value: str):
@@ -220,3 +223,4 @@ class DenonAdvancedAudioApi:
             data["audio_delay_adjust"] = ad.get("adjust")
         except Exception: pass
         return data
+

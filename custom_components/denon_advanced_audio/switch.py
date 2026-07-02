@@ -30,7 +30,7 @@ class DenonDynamicEqSwitch(DenonBaseEntity, SwitchEntity):
     @property
     def is_on(self):
         v = self.coordinator.data.get("dynamic_eq")
-        return True if v == "2" else False if v == "1" else None
+        return True if v == "1" else False if v == "2" else None
 
     async def async_turn_on(self, **kwargs):
         await self.coordinator.api.async_set_dynamic_eq(True)
@@ -74,14 +74,14 @@ class DenonAirplaySwitch(DenonBaseEntity, SwitchEntity):
     @property
     def is_on(self):
         v = self.coordinator.data.get("airplay")
-        return True if v == "2" else False if v == "1" else None
+        return True if v == "1" else False if v == "2" else None
 
     async def async_turn_on(self, **kwargs):
-        await self.coordinator.api.async_set_airplay("2")
+        await self.coordinator.api.async_set_airplay("1")
         await self.coordinator.async_request_refresh()
 
     async def async_turn_off(self, **kwargs):
-        await self.coordinator.api.async_set_airplay("1")
+        await self.coordinator.api.async_set_airplay("2")
         await self.coordinator.async_request_refresh()
 
 
@@ -96,12 +96,13 @@ class DenonAutoLipSyncSwitch(DenonBaseEntity, SwitchEntity):
     @property
     def is_on(self):
         v = self.coordinator.data.get("auto_lip_sync")
-        return True if v == "2" else False if v == "1" else None
+        return True if v == "1" else False if v == "2" else None
 
     async def async_turn_on(self, **kwargs):
-        await self.coordinator.api.async_set_auto_lip_sync("2")
+        await self.coordinator.api.async_set_auto_lip_sync("1")
         await self.coordinator.async_request_refresh()
 
     async def async_turn_off(self, **kwargs):
-        await self.coordinator.api.async_set_auto_lip_sync("1")
+        await self.coordinator.api.async_set_auto_lip_sync("2")
         await self.coordinator.async_request_refresh()
+
