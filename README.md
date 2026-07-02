@@ -13,7 +13,6 @@ Developed and tested against **Denon AVR-X3700H**, but should work with any Deno
 ### Speaker & Audyssey
 
 - **Speaker Preset** — switch between Preset 1 / Preset 2
-- **Speaker Preset State** — read-only sensor of currently active preset
 - **MultEQ XT32** — Reference / L/R Bypass / Flat / Off
 - **Dynamic EQ** — on / off switch
 - **Dynamic Volume** — Off / Light / Medium / Heavy
@@ -70,7 +69,6 @@ Each switch uses the **custom zone name** configured on the AVR (e.g. if Zone 2 
 | Entity | Platform | Notes |
 |---|---|---|
 | Speaker Preset | select | Preset 1 / Preset 2 |
-| Speaker Preset State | sensor | Read-only |
 | MultEQ XT32 | select | Reference / L/R Bypass / Flat / Off |
 | Dynamic EQ | switch | on / off |
 | Dynamic Volume | select | Off / Light / Medium / Heavy |
@@ -279,3 +277,4 @@ MIT — see [LICENSE](LICENSE)
 
 - Inspired by the [denonavr](https://github.com/ol-iver/denonavr) Python library
 - Reverse-engineered from the Denon AVR-X3700H web control interface
+
