@@ -7,3 +7,7 @@ __pycache__/
 .DS_Store
 .storage/
 home-assistant.log*
+
+# Local development / deploy scripts (not for distribution)
+deploy.ps1
+update_*.ps1
