@@ -1,6 +1,10 @@
-# Denon Advanced Audio — Home Assistant Integration
+﻿<p align="center">
+  ands/logo.png" alt="Denon Advanced Audio" width="600">
+</p>
 
-Home Assistant custom integration exposing **advanced Denon AVR settings** that are not available in the built-in Denon integration — Speaker Presets, MultEQ XT32, full Audyssey control, Zone Power, ECO / power-saving settings, Subwoofer Levels, Volume settings, Audio Delay, Restorer, Network Control, AirPlay, and more.
+# Denon Advanced Audio â€” Home Assistant Integration
+
+Home Assistant custom integration exposing **advanced Denon AVR settings** that are not available in the built-in Denon integration â€” Speaker Presets, MultEQ XT32, full Audyssey control, Zone Power, ECO / power-saving settings, Front Display brightness, Subwoofer Levels, Volume settings, Audio Delay, Restorer, Network Control, AirPlay, and full network diagnostics.
 
 Developed and tested against **Denon AVR-X3700H**, but should work with any Denon AVR-X or AVC series receiver that exposes the standard `/ajax/` web control endpoints.
 
@@ -12,55 +16,74 @@ Developed and tested against **Denon AVR-X3700H**, but should work with any Deno
 
 ### Speaker & Audyssey
 
-- **Speaker Preset** — switch between Preset 1 / Preset 2
-- **MultEQ XT32** — Reference / L/R Bypass / Flat / Off
-- **Dynamic EQ** — on / off switch
-- **Dynamic Volume** — Off / Light / Medium / Heavy
-- **Reference Level Offset** — 0 / 5 / 10 / 15 dB
-- **Audyssey LFC** — on / off switch
-- **Containment Amount** — 1 – 7 (only available when LFC is On)
+- **Speaker Preset** â€” switch between Preset 1 / Preset 2
+- **MultEQ XT32** â€” Reference / L/R Bypass / Flat / Off
+- **Dynamic EQ** â€” on / off switch
+- **Dynamic Volume** â€” Off / Light / Medium / Heavy
+- **Reference Level Offset** â€” 0 / 5 / 10 / 15 dB
+- **Audyssey LFC** â€” on / off switch
+- **Containment Amount** â€” 1 â€“ 7 (only available when LFC is On)
 
 ### Volume
 
-- **Volume Scale** — 0-98 / -79.5 dB … 18.0 dB
-- **Volume Limit** — Off, -20 dB … 0 dB
-- **Power On Level** — -80 dB … +18 dB
-- **Mute Level** — Full / -40 dB / -20 dB
+- **Volume Scale** â€” 0-98 / -79.5 dB â€¦ 18.0 dB
+- **Volume Limit** â€” Off, -20 dB â€¦ 0 dB
+- **Power On Level** â€” -80 dB â€¦ +18 dB
+- **Mute Level** â€” Full / -40 dB / -20 dB
 
 ### Audio
 
-- **Restorer** — Off / Low / Medium / High
-- **Subwoofer Level 1** — -12.0 dB … +12.0 dB in 0.5 dB steps
-- **Subwoofer Level 2** — -12.0 dB … +12.0 dB in 0.5 dB steps
-- **Auto Lip Sync** — on / off
-- **Audio Delay** — 0 – 999 ms
+- **Restorer** â€” Off / Low / Medium / High
+- **Subwoofer Level 1** â€” -12.0 dB â€¦ +12.0 dB in 0.5 dB steps
+- **Subwoofer Level 2** â€” -12.0 dB â€¦ +12.0 dB in 0.5 dB steps
+- **Auto Lip Sync** â€” on / off
+- **Audio Delay** â€” 0 â€“ 999 ms
 
-### Zone Power *(new in v0.1.3)*
+### Zone Power
 
-- **Main Zone Power** — on / off
-- **Zone 2 Power** — on / off
-- **Zone 3 Power** — auto-hidden if not supported by your AVR
-- **Zone 4 Power** — auto-hidden if not supported by your AVR
+- **Main Zone Power** â€” on / off
+- **Zone 2 Power** â€” on / off
+- **Zone 3 Power** â€” auto-hidden if not supported by your AVR
+- **Zone 4 Power** â€” auto-hidden if not supported by your AVR
 
 Each switch uses the **custom zone name** configured on the AVR (e.g. if Zone 2 is renamed to "Kitchen", the entity appears as "Kitchen Power").
 
-### ECO / General *(new in v0.1.3)*
+### ECO / General
 
-- **ECO Mode** — On / Auto / Off
-- **Power On Default** — Last / On / Auto / Off
-- **On Screen Display** — Always On / Auto / Off
-- **Auto Standby Main Zone** — 60 min / 30 min / 15 min / Off
-- **Auto Standby Zone 2** — 8 hours / 4 hours / 2 hours / Off
+- **ECO Mode** â€” On / Auto / Off
+- **Power On Default** â€” Last / On / Auto / Off
+- **On Screen Display** â€” Always On / Auto / Off
+- **Auto Standby Main Zone** â€” 60 min / 30 min / 15 min / Off
+- **Auto Standby Zone 2** â€” 8 hours / 4 hours / 2 hours / Off
+
+### Front Display *(new in v0.1.5)*
+
+- **Front Display** â€” Bright / Dim / Dark / Off (controls the AVR's front panel brightness)
 
 ### Network
 
-- **Network Control** — Off / Always On
-- **AirPlay** — on / off
+- **Network Control** â€” Off / Always On
+- **AirPlay** â€” on / off
+
+### Network Diagnostics *(new in v0.1.5, read-only)*
+
+Hidden by default in HA's Diagnostic section:
+
+- **IP Address**
+- **MAC Address (Ethernet)**
+- **MAC Address (Wi-Fi)**
+- **Connection Type** â€” Wired (Ethernet) / Wi-Fi / Not connected
+- **DHCP** â€” On / Off
+- **Physical Connection** â€” OK / Failed
+- **Router Access** â€” OK / Failed
+- **Internet Access** â€” OK / Failed
 
 ### Device info
 
 - Model and friendly name are read directly from the AVR at setup
 - All entities are grouped under a single Home Assistant device
+- Integration branding (icon + logo) available for HA UI and HACS
+- Ethernet MAC address is added to the device registry so HA can link with other integrations (e.g. `denonavr`) that reference the same AVR
 
 ---
 
@@ -72,18 +95,18 @@ Each switch uses the **custom zone name** configured on the AVR (e.g. if Zone 2 
 | MultEQ XT32 | select | Reference / L/R Bypass / Flat / Off |
 | Dynamic EQ | switch | on / off |
 | Dynamic Volume | select | Off / Light / Medium / Heavy |
-| Reference Level Offset | select | 0 – 15 dB |
+| Reference Level Offset | select | 0 â€“ 15 dB |
 | Audyssey LFC | switch | on / off |
-| Containment Amount | number | 1 – 7, only available when LFC is On |
-| Volume Scale | select | 0-98 / -79.5 dB … 18.0 dB |
-| Volume Limit | select | Off, -20 dB … 0 dB |
-| Power On Level | select | -80 dB … +18 dB |
+| Containment Amount | number | 1 â€“ 7, only available when LFC is On |
+| Volume Scale | select | 0-98 / -79.5 dB â€¦ 18.0 dB |
+| Volume Limit | select | Off, -20 dB â€¦ 0 dB |
+| Power On Level | select | -80 dB â€¦ +18 dB |
 | Mute Level | select | Full / -40 dB / -20 dB |
 | Restorer | select | Off / Low / Medium / High |
-| Subwoofer Level 1 | number | -12.0 … +12.0 dB, step 0.5 |
-| Subwoofer Level 2 | number | -12.0 … +12.0 dB, step 0.5 |
+| Subwoofer Level 1 | number | -12.0 â€¦ +12.0 dB, step 0.5 |
+| Subwoofer Level 2 | number | -12.0 â€¦ +12.0 dB, step 0.5 |
 | Auto Lip Sync | switch | on / off |
-| Audio Delay | number | 0 – 999 ms |
+| Audio Delay | number | 0 â€“ 999 ms |
 | Main Zone Power | switch | Uses custom zone name |
 | Zone 2 Power | switch | Uses custom zone name |
 | Zone 3 Power | switch | Hidden if not supported |
@@ -93,22 +116,31 @@ Each switch uses the **custom zone name** configured on the AVR (e.g. if Zone 2 
 | On Screen Display | select | Always On / Auto / Off |
 | Auto Standby Main Zone | select | 60 / 30 / 15 min / Off |
 | Auto Standby Zone 2 | select | 8 / 4 / 2 hours / Off |
+| Front Display | select | Bright / Dim / Dark / Off |
 | Network Control | select | Off / Always On |
 | AirPlay | switch | on / off |
+| IP Address | sensor | Diagnostic |
+| MAC Address (Ethernet) | sensor | Diagnostic |
+| MAC Address (Wi-Fi) | sensor | Diagnostic |
+| Connection Type | sensor | Diagnostic |
+| DHCP | sensor | Diagnostic |
+| Physical Connection | sensor | Diagnostic |
+| Router Access | sensor | Diagnostic |
+| Internet Access | sensor | Diagnostic |
 
-All entities poll the AVR every 30 seconds by default.
+All entities poll the AVR every 30 seconds by default. Diagnostic sensors are shown in a collapsed section below the main controls in Home Assistant's device page.
 
 ---
 
 ## Installation
 
-### Option 1 — HACS (recommended)
+### Option 1 â€” HACS (recommended)
 
 This integration is a **custom repository**. Add it via HACS as follows:
 
 1. In Home Assistant, go to **HACS**
 2. Open **Integrations**
-3. Click the three-dot menu in the top right → **Custom repositories**
+3. Click the three-dot menu in the top right -> **Custom repositories**
 4. Enter:
    - **Repository**: `https://github.com/triumfas/Denon-Advanced-Audio`
    - **Category**: `Integration`
@@ -117,7 +149,7 @@ This integration is a **custom repository**. Add it via HACS as follows:
 7. Click **Download** on the integration
 8. Restart Home Assistant
 
-### Option 2 — Manual
+### Option 2 â€” Manual
 
 1. Download this repository as a ZIP
 2. Copy the folder `custom_components/denon_advanced_audio` into your Home Assistant `config/custom_components/` directory
@@ -127,26 +159,26 @@ Final folder structure:
 
 ```
 config/
-└── custom_components/
-    └── denon_advanced_audio/
-        ├── __init__.py
-        ├── api.py
-        ├── const.py
-        ├── coordinator.py
-        ├── config_flow.py
-        ├── entity.py
-        ├── manifest.json
-        ├── number.py
-        ├── select.py
-        ├── sensor.py
-        └── switch.py
+`-- custom_components/
+    `-- denon_advanced_audio/
+        |-- __init__.py
+        |-- api.py
+        |-- const.py
+        |-- coordinator.py
+        |-- config_flow.py
+        |-- entity.py
+        |-- manifest.json
+        |-- number.py
+        |-- select.py
+        |-- sensor.py
+        `-- switch.py
 ```
 
 ---
 
 ## Configuration
 
-1. Go to **Settings → Devices & services → Add integration**
+1. Go to **Settings -> Devices & services -> Add integration**
 2. Search for **Denon Advanced Audio**
 3. Enter:
 
@@ -155,7 +187,7 @@ config/
 | **Base URL** | `https://192.168.1.100:10443` | Denon web control URL (see below) |
 | **Verify SSL certificate** | off | Denon uses a self-signed certificate; leave unchecked unless you use a reverse proxy with a valid certificate |
 
-The device name and model are read automatically from the AVR — no need to enter them manually.
+The device name and model are read automatically from the AVR -- no need to enter them manually.
 
 ### Finding your Denon Base URL
 
@@ -167,7 +199,7 @@ Denon AVRs expose a web control interface on ports **8080 (HTTP)** and **10443 (
 | Direct local access (HTTP) | `http://192.168.X.X:8080` |
 | Behind reverse proxy | `https://avr.example.com` |
 
-You can test by opening the URL in a browser — you should see the Denon web control page.
+You can test by opening the URL in a browser -- you should see the Denon web control page.
 
 ---
 
@@ -183,9 +215,35 @@ If your model works (or does not), please open an issue with the model name and 
 
 ---
 
+## Example Control Card
+
+Want a Denon-style control card in Home Assistant? A ready-to-use Lovelace YAML card is included in examples/denon_control_panel.yaml.
+
+The card layout mirrors the Denon Web Control page structure:
+
+- **Zones** -- power toggles for Main Zone / Zone 2 / Zone 3 / Zone 4
+- **Speaker Preset** -- Preset 1 / Preset 2
+- **Audyssey** -- MultEQ XT32, Dynamic EQ, Dynamic Volume, Reference Level Offset, LFC, Containment Amount
+- **Volume** -- Scale, Limit, Power On Level, Mute Level
+- **Audio** -- Restorer, Subwoofer 1 and 2 levels, Auto Lip Sync, Audio Delay
+- **General & ECO** -- ECO Mode, Power On Default, On Screen Display, Auto Standby
+- **Network** -- Network Control, AirPlay
+
+### How to use
+
+1. In Home Assistant, go to your **Overview** dashboard
+2. Click the three-dot menu -> **Edit dashboard**
+3. Click **+ Add card** -> scroll to the bottom -> **Manual**
+4. Paste the YAML from examples/denon_control_panel.yaml
+5. Save
+
+The card uses entity IDs with the `denon_*` prefix (e.g. `switch.denon_main_zone_power`). If your entities have different IDs, update the YAML accordingly -- you can find your entities at **Settings -> Devices & services -> Denon Advanced Audio -> Entities**.
+
+---
+
 ## How it works
 
-As of v0.1.0, the integration is **100% HTTP** — it uses only the Denon web control API, the same endpoints the AVR's built-in web UI uses.
+As of v0.1.0, the integration is **100% HTTP** -- it uses only the Denon web control API, the same endpoints the AVR's built-in web UI uses.
 
 Benefits:
 
@@ -207,16 +265,19 @@ Benefits:
 | Zone Power | `/ajax/globals/get_config?type=4` / `set_config?type=4` | `<MainZone><Power>X</Power></MainZone>`, `<Zone2><Power>X</Power></Zone2>` |
 | Zone Names | `/ajax/globals/get_config?type=6` | `<MainZone>`, `<Zone2>` friendly names |
 | ECO / General | `/ajax/general/get_config?type=3` / `set_config?type=3` | `<Mode>`, `<PowerOnDefault>`, `<OnScreenDisplay>`, `<AutoStandby>` |
+| Front Display | `/ajax/general/get_config?type=10` / `set_config?type=10` | `<Dimmer>X</Dimmer>` |
 | Network Control | `/ajax/network/get_config?type=5` / `set_config?type=5` | `<Control>X</Control>` |
+| Network Information | `/ajax/network/get_config?type=2` | IP, MAC (Ethernet/Wi-Fi), Connection, DHCP |
+| Network Diagnostics | `/ajax/network/get_config?type=7` | Physical Connection, Router Access, Internet Access |
 | Device Info | `/ajax/network/get_config?type=6` | `<DefaultName>`, `<CurrentName>` |
 | AirPlay | `/ajax/network/get_config?type=9` / `set_config?type=9` | `<AirPlay><Value>X</Value></AirPlay>` |
 
 ### Value encodings
 
-- **Volume Limit / Power On Level** → `dB + 80` (e.g. `-52 dB` = `28`, `0 dB` = `80`, `+18 dB` = `98`)
-- **Subwoofer Level 1 / 2** → `dB × 10` (e.g. `-1.5 dB` = `-15`, `+3.0 dB` = `30`)
-- **Zone Power** → `1` = On, `3` = Off (the same values the Denon UI shows as green/red icons)
-- **Boolean settings** — Denon convention: `1` = On, `2` = Off
+- **Volume Limit / Power On Level** -- `dB + 80` (e.g. `-52 dB` = `28`, `0 dB` = `80`, `+18 dB` = `98`)
+- **Subwoofer Level 1 / 2** -- `dB x 10` (e.g. `-1.5 dB` = `-15`, `+3.0 dB` = `30`)
+- **Zone Power** -- `1` = On, `3` = Off (the same values the Denon UI shows as green/red icons)
+- **Boolean settings** -- Denon convention: `1` = On, `2` = Off
 
 ---
 
@@ -235,50 +296,66 @@ Benefits:
 
 ### Some entities show `unknown`
 
-- The AVR may return empty XML in certain standby modes — power the AVR on and wait one poll cycle (30 s)
+- The AVR may return empty XML in certain standby modes -- power the AVR on and wait one poll cycle (30 s)
 - Check Home Assistant logs for `denon_advanced_audio` warnings
 
 ### Containment Amount is not adjustable
 
-That is by design. **Containment Amount is only adjustable when Audyssey LFC is On.** Turn on the LFC switch first — the Containment Amount entity will then become available. When LFC is off, the AVR itself greys the field out.
+That is by design. **Containment Amount is only adjustable when Audyssey LFC is On.** Turn on the LFC switch first -- the Containment Amount entity will then become available. When LFC is off, the AVR itself greys the field out.
 
 ### Zone 3 or Zone 4 power switch shows as unavailable
 
 That's expected if your AVR model doesn't support those zones (like the AVR-X3700H, which only has Main Zone and Zone 2). The switches will automatically become available on models that expose Zone 3 / Zone 4.
 
+### Diagnostic sensors are hidden
+
+The network sensors (IP Address, MAC, DHCP, diagnostics) use HA's Diagnostic category -- they appear in a collapsed **Diagnostic** section at the bottom of the device page. Click to expand.
+
 ### Model or device name is wrong
 
-- Model comes from **Network → Friendly Name → Default Name** on the AVR
-- Device name comes from **Network → Friendly Name → Current Name** (the one you can rename in the AVR web UI or Denon app)
+- Model comes from **Network -> Friendly Name -> Default Name** on the AVR
+- Device name comes from **Network -> Friendly Name -> Current Name** (the one you can rename in the AVR web UI or Denon app)
+
+---
+
+## Branding
+
+Icons for this integration are available in the `brands/` folder:
+
+| File | Size | Purpose |
+|---|---|---|
+| `brands/icon.png` | 256 x 256 | Integration icon |
+| `brands/icon@2x.png` | 512 x 512 | High-resolution icon |
+| `brands/logo.png` | 1024 x 256 | Integration logo (banner) |
+| `brands/logo@2x.png` | 2048 x 512 | High-resolution logo |
+
+These icons have been prepared for submission to the [home-assistant/brands](https://github.com/home-assistant/brands) repository so Home Assistant and HACS can display them automatically once merged.
 
 ---
 
 ## Version history
 
-- **v0.1.4** -- Integration branding added (icon and logo submitted to home-assistant/brands)
-- **v0.1.3** — Zone Power switches (Main + Zone 2/3/4 with custom names), ECO / General settings (ECO Mode, Power On Default, OSD, Auto Standby), icon fixes for subwoofer and AirPlay
-- **v0.1.2** — Fix AirPlay state parsing (nested XML)
-- **v0.1.1** — Fix inverted On/Off states for Dynamic EQ, Auto Lip Sync, Network Control
-- **v0.1.0** — 100% HTTP: removed telnet, moved Audyssey to a single web endpoint, added Containment Amount
-- **v0.0.9** — Added Auto Lip Sync switch and Audio Delay number
-- **v0.0.8** — Added MultEQ XT32 select and Subwoofer Level 1 / 2 numbers
-- **v0.0.7** — Added AirPlay switch
-- **v0.0.6** — Added Network Control select
-- **v0.0.5** — Added Volume Scale / Limit / Power On Level / Mute Level; automatic device info
-- **v0.0.4** — Added Restorer select
-- **v0.0.1 – v0.0.3** — Initial Speaker Preset control and Audyssey via telnet
+- **v0.1.5** -- Front Display brightness control (Bright/Dim/Dark/Off), Network Information sensors (IP, MAC, DHCP, Connection), Network Diagnostics sensors (Physical/Router/Internet), MAC address added to device registry
+- **v0.1.4** -- Integration branding added (icon and logo)
+- **v0.1.3** -- Zone Power switches (Main + Zone 2/3/4 with custom names), ECO / General settings (ECO Mode, Power On Default, OSD, Auto Standby), icon fixes for subwoofer and AirPlay, integration branding added, removed redundant Speaker Preset State sensor
+- **v0.1.2** -- Fix AirPlay state parsing (nested XML)
+- **v0.1.1** -- Fix inverted On/Off states for Dynamic EQ, Auto Lip Sync, Network Control
+- **v0.1.0** -- 100% HTTP: removed telnet, moved Audyssey to a single web endpoint, added Containment Amount
+- **v0.0.9** -- Added Auto Lip Sync switch and Audio Delay number
+- **v0.0.8** -- Added MultEQ XT32 select and Subwoofer Level 1 / 2 numbers
+- **v0.0.7** -- Added AirPlay switch
+- **v0.0.6** -- Added Network Control select
+- **v0.0.5** -- Added Volume Scale / Limit / Power On Level / Mute Level; automatic device info
+- **v0.0.4** -- Added Restorer select
+- **v0.0.1 - v0.0.3** -- Initial Speaker Preset control and Audyssey via telnet
 
 ---
 
 ## License
 
-MIT — see [LICENSE](LICENSE)
+MIT -- see [LICENSE](LICENSE)
 
 ## Credits
 
 - Inspired by the [denonavr](https://github.com/ol-iver/denonavr) Python library
 - Reverse-engineered from the Denon AVR-X3700H web control interface
-
-
-
-
