@@ -1,6 +1,7 @@
 {
   "name": "Denon Advanced Audio",
   "filename": "denon_advanced_audio",
+  "content_in_root": false,
   "render_readme": true,
   "domains": [
     "select",
