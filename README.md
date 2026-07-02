@@ -1,10 +1,10 @@
-﻿<p align="center">
+﻿﻿<p align="center">
   ands/logo.png" alt="Denon Advanced Audio" width="600">
 </p>
 
-# Denon Advanced Audio â€” Home Assistant Integration
+# Denon Advanced Audio -- Home Assistant Integration
 
-Home Assistant custom integration exposing **advanced Denon AVR settings** that are not available in the built-in Denon integration â€” Speaker Presets, MultEQ XT32, full Audyssey control, Zone Power, ECO / power-saving settings, Front Display brightness, Subwoofer Levels, Volume settings, Audio Delay, Restorer, Network Control, AirPlay, and full network diagnostics.
+Home Assistant custom integration exposing **advanced Denon AVR settings** that are not available in the built-in Denon integration -- Speaker Presets, MultEQ XT32, full Audyssey control, Zone Power, ECO / power-saving settings, Front Display brightness, Subwoofer Levels, Volume settings, Audio Delay, Restorer, Network Control, AirPlay, and full network diagnostics.
 
 Developed and tested against **Denon AVR-X3700H**, but should work with any Denon AVR-X or AVC series receiver that exposes the standard `/ajax/` web control endpoints.
 
@@ -16,54 +16,54 @@ Developed and tested against **Denon AVR-X3700H**, but should work with any Deno
 
 ### Speaker & Audyssey
 
-- **Speaker Preset** â€” switch between Preset 1 / Preset 2
-- **MultEQ XT32** â€” Reference / L/R Bypass / Flat / Off
-- **Dynamic EQ** â€” on / off switch
-- **Dynamic Volume** â€” Off / Light / Medium / Heavy
-- **Reference Level Offset** â€” 0 / 5 / 10 / 15 dB
-- **Audyssey LFC** â€” on / off switch
-- **Containment Amount** â€” 1 â€“ 7 (only available when LFC is On)
+- **Speaker Preset** -- switch between Preset 1 / Preset 2
+- **MultEQ XT32** -- Reference / L/R Bypass / Flat / Off
+- **Dynamic EQ** -- on / off switch
+- **Dynamic Volume** -- Off / Light / Medium / Heavy
+- **Reference Level Offset** -- 0 / 5 / 10 / 15 dB
+- **Audyssey LFC** -- on / off switch
+- **Containment Amount** -- 1 -- 7 (only available when LFC is On)
 
 ### Volume
 
-- **Volume Scale** â€” 0-98 / -79.5 dB â€¦ 18.0 dB
-- **Volume Limit** â€” Off, -20 dB â€¦ 0 dB
-- **Power On Level** â€” -80 dB â€¦ +18 dB
-- **Mute Level** â€” Full / -40 dB / -20 dB
+- **Volume Scale** -- 0-98 / -79.5 dB ... 18.0 dB
+- **Volume Limit** -- Off, -20 dB ... 0 dB
+- **Power On Level** -- -80 dB ... +18 dB
+- **Mute Level** -- Full / -40 dB / -20 dB
 
 ### Audio
 
-- **Restorer** â€” Off / Low / Medium / High
-- **Subwoofer Level 1** â€” -12.0 dB â€¦ +12.0 dB in 0.5 dB steps
-- **Subwoofer Level 2** â€” -12.0 dB â€¦ +12.0 dB in 0.5 dB steps
-- **Auto Lip Sync** â€” on / off
-- **Audio Delay** â€” 0 â€“ 999 ms
+- **Restorer** -- Off / Low / Medium / High
+- **Subwoofer Level 1** -- -12.0 dB ... +12.0 dB in 0.5 dB steps
+- **Subwoofer Level 2** -- -12.0 dB ... +12.0 dB in 0.5 dB steps
+- **Auto Lip Sync** -- on / off
+- **Audio Delay** -- 0 -- 999 ms
 
 ### Zone Power
 
-- **Main Zone Power** â€” on / off
-- **Zone 2 Power** â€” on / off
-- **Zone 3 Power** â€” auto-hidden if not supported by your AVR
-- **Zone 4 Power** â€” auto-hidden if not supported by your AVR
+- **Main Zone Power** -- on / off
+- **Zone 2 Power** -- on / off
+- **Zone 3 Power** -- auto-hidden if not supported by your AVR
+- **Zone 4 Power** -- auto-hidden if not supported by your AVR
 
 Each switch uses the **custom zone name** configured on the AVR (e.g. if Zone 2 is renamed to "Kitchen", the entity appears as "Kitchen Power").
 
 ### ECO / General
 
-- **ECO Mode** â€” On / Auto / Off
-- **Power On Default** â€” Last / On / Auto / Off
-- **On Screen Display** â€” Always On / Auto / Off
-- **Auto Standby Main Zone** â€” 60 min / 30 min / 15 min / Off
-- **Auto Standby Zone 2** â€” 8 hours / 4 hours / 2 hours / Off
+- **ECO Mode** -- On / Auto / Off
+- **Power On Default** -- Last / On / Auto / Off
+- **On Screen Display** -- Always On / Auto / Off
+- **Auto Standby Main Zone** -- 60 min / 30 min / 15 min / Off
+- **Auto Standby Zone 2** -- 8 hours / 4 hours / 2 hours / Off
 
 ### Front Display *(new in v0.1.5)*
 
-- **Front Display** â€” Bright / Dim / Dark / Off (controls the AVR's front panel brightness)
+- **Front Display** -- Bright / Dim / Dark / Off (controls the AVR's front panel brightness)
 
 ### Network
 
-- **Network Control** â€” Off / Always On
-- **AirPlay** â€” on / off
+- **Network Control** -- Off / Always On
+- **AirPlay** -- on / off
 
 ### Network Diagnostics *(new in v0.1.5, read-only)*
 
@@ -72,11 +72,11 @@ Hidden by default in HA's Diagnostic section:
 - **IP Address**
 - **MAC Address (Ethernet)**
 - **MAC Address (Wi-Fi)**
-- **Connection Type** â€” Wired (Ethernet) / Wi-Fi / Not connected
-- **DHCP** â€” On / Off
-- **Physical Connection** â€” OK / Failed
-- **Router Access** â€” OK / Failed
-- **Internet Access** â€” OK / Failed
+- **Connection Type** -- Wired (Ethernet) / Wi-Fi / Not connected
+- **DHCP** -- On / Off
+- **Physical Connection** -- OK / Failed
+- **Router Access** -- OK / Failed
+- **Internet Access** -- OK / Failed
 
 ### Device info
 
@@ -95,18 +95,18 @@ Hidden by default in HA's Diagnostic section:
 | MultEQ XT32 | select | Reference / L/R Bypass / Flat / Off |
 | Dynamic EQ | switch | on / off |
 | Dynamic Volume | select | Off / Light / Medium / Heavy |
-| Reference Level Offset | select | 0 â€“ 15 dB |
+| Reference Level Offset | select | 0 -- 15 dB |
 | Audyssey LFC | switch | on / off |
-| Containment Amount | number | 1 â€“ 7, only available when LFC is On |
-| Volume Scale | select | 0-98 / -79.5 dB â€¦ 18.0 dB |
-| Volume Limit | select | Off, -20 dB â€¦ 0 dB |
-| Power On Level | select | -80 dB â€¦ +18 dB |
+| Containment Amount | number | 1 -- 7, only available when LFC is On |
+| Volume Scale | select | 0-98 / -79.5 dB ... 18.0 dB |
+| Volume Limit | select | Off, -20 dB ... 0 dB |
+| Power On Level | select | -80 dB ... +18 dB |
 | Mute Level | select | Full / -40 dB / -20 dB |
 | Restorer | select | Off / Low / Medium / High |
-| Subwoofer Level 1 | number | -12.0 â€¦ +12.0 dB, step 0.5 |
-| Subwoofer Level 2 | number | -12.0 â€¦ +12.0 dB, step 0.5 |
+| Subwoofer Level 1 | number | -12.0 ... +12.0 dB, step 0.5 |
+| Subwoofer Level 2 | number | -12.0 ... +12.0 dB, step 0.5 |
 | Auto Lip Sync | switch | on / off |
-| Audio Delay | number | 0 â€“ 999 ms |
+| Audio Delay | number | 0 -- 999 ms |
 | Main Zone Power | switch | Uses custom zone name |
 | Zone 2 Power | switch | Uses custom zone name |
 | Zone 3 Power | switch | Hidden if not supported |
@@ -134,7 +134,7 @@ All entities poll the AVR every 30 seconds by default. Diagnostic sensors are sh
 
 ## Installation
 
-### Option 1 â€” HACS (recommended)
+### Option 1 -- HACS (recommended)
 
 This integration is a **custom repository**. Add it via HACS as follows:
 
@@ -149,7 +149,7 @@ This integration is a **custom repository**. Add it via HACS as follows:
 7. Click **Download** on the integration
 8. Restart Home Assistant
 
-### Option 2 â€” Manual
+### Option 2 -- Manual
 
 1. Download this repository as a ZIP
 2. Copy the folder `custom_components/denon_advanced_audio` into your Home Assistant `config/custom_components/` directory
