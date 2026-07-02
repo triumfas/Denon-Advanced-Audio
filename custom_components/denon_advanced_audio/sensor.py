@@ -4,55 +4,24 @@ from homeassistant.components.sensor import SensorEntity
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
-from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
 from .const import DOMAIN
-from .coordinator import DenonAdvancedAudioCoordinator
+from .entity import DenonBaseEntity
 
 
-async def async_setup_entry(
-    hass: HomeAssistant,
-    entry: ConfigEntry,
-    async_add_entities: AddEntitiesCallback,
-) -> None:
-    data = hass.data[DOMAIN][entry.entry_id]
-    coordinator = data["coordinator"]
-
-    async_add_entities(
-        [
-            DenonSpeakerPresetSensor(
-                coordinator,
-                entry.entry_id,
-            ),
-        ]
-    )
+async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry, async_add_entities: AddEntitiesCallback) -> None:
+    coord = hass.data[DOMAIN][entry.entry_id]["coordinator"]
+    async_add_entities([DenonSpeakerPresetSensor(coord, entry.entry_id)])
 
 
-class DenonSpeakerPresetSensor(
-    CoordinatorEntity[DenonAdvancedAudioCoordinator],
-    SensorEntity,
-):
-    """Denon Speaker Preset state sensor."""
-
+class DenonSpeakerPresetSensor(DenonBaseEntity, SensorEntity):
     _attr_name = "Speaker Preset State"
     _attr_icon = "mdi:surround-sound"
 
-    def __init__(
-        self,
-        coordinator: DenonAdvancedAudioCoordinator,
-        entry_id: str,
-    ) -> None:
-        super().__init__(coordinator)
+    def __init__(self, coord, entry_id):
+        super().__init__(coord, entry_id)
         self._attr_unique_id = f"{entry_id}_speaker_preset_state"
 
     @property
-    def native_value(self) -> str:
-        preset = self.coordinator.data.get("speaker_preset")
-
-        if preset == "1":
-            return "Preset 1"
-
-        if preset == "2":
-            return "Preset 2"
-
-        return "Unknown"
+    def native_value(self):
+        return {"1": "Preset 1", "2": "Preset 2"}.get(self.coordinator.data.get("speaker_preset"), "Unknown")

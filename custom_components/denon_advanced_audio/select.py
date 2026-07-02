@@ -4,203 +4,282 @@ from homeassistant.components.select import SelectEntity
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
-from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
 from .const import DOMAIN
-from .coordinator import DenonAdvancedAudioCoordinator
+from .entity import DenonBaseEntity
+
+SPEAKER_PRESET_OPTIONS = ["Preset 1", "Preset 2"]
+
+RESTORER_OPTIONS = ["Off", "Low", "Medium", "High"]
+RESTORER_TO = {"Off": "1", "Low": "2", "Medium": "3", "High": "4"}
+RESTORER_FROM = {v: k for k, v in RESTORER_TO.items()}
+
+DYNVOL_OPTIONS = ["Off", "Light", "Medium", "Heavy"]
+DYNVOL_TO = {"Off": "4", "Light": "3", "Medium": "2", "Heavy": "1"}
+DYNVOL_FROM = {v: k for k, v in DYNVOL_TO.items()}
+
+REFLEV_OPTIONS = ["0 dB", "5 dB", "10 dB", "15 dB"]
+REFLEV_TO = {"0 dB": "0", "5 dB": "5", "10 dB": "10", "15 dB": "15"}
+REFLEV_FROM = {v: k for k, v in REFLEV_TO.items()}
+
+VOLUME_SCALE_OPTIONS = ["0-98", "-79.5dB - 18.0dB"]
+VOLUME_SCALE_TO = {"0-98": "1", "-79.5dB - 18.0dB": "2"}
+VOLUME_SCALE_FROM = {v: k for k, v in VOLUME_SCALE_TO.items()}
+
+VOLUME_LIMIT_OPTIONS = ["Off"] + [f"-{i}dB" for i in range(20, 0, -1)] + ["0dB"]
+MUTE_LEVEL_OPTIONS = ["Full", "-40dB", "-20dB"]
+MUTE_LEVEL_TO = {"Full": "1", "-40dB": "2", "-20dB": "3"}
+MUTE_LEVEL_FROM = {v: k for k, v in MUTE_LEVEL_TO.items()}
+
+NETWORK_CONTROL_OPTIONS = ["Off", "Always On"]
+NETWORK_CONTROL_TO = {"Off": "1", "Always On": "2"}
+NETWORK_CONTROL_FROM = {v: k for k, v in NETWORK_CONTROL_TO.items()}
+
+MULTEQ_OPTIONS = ["Reference", "L/R Bypass", "Flat", "Off"]
+MULTEQ_TO = {"Reference": "1", "L/R Bypass": "2", "Flat": "3", "Off": "4"}
+MULTEQ_FROM = {v: k for k, v in MULTEQ_TO.items()}
+
+PON_OPTIONS = [f"-{i}dB" for i in range(80, 0, -1)] + ["0dB"] + [f"+{i}dB" for i in range(1, 19)]
 
 
-SPEAKER_PRESET_OPTIONS = [
-    "Preset 1",
-    "Preset 2",
-]
-
-DYNAMIC_VOLUME_OPTIONS = [
-    "Off",
-    "Light",
-    "Medium",
-    "Heavy",
-]
-
-DYNAMIC_VOLUME_TO_DENON = {
-    "Off": "OFF",
-    "Light": "LIT",
-    "Medium": "MED",
-    "Heavy": "HEV",
-}
-
-DYNAMIC_VOLUME_FROM_DENON = {
-    "OFF": "Off",
-    "LIT": "Light",
-    "MED": "Medium",
-    "HEV": "Heavy",
-}
-
-REFERENCE_LEVEL_OPTIONS = [
-    "0 dB",
-    "5 dB",
-    "10 dB",
-    "15 dB",
-]
-
-REFERENCE_LEVEL_TO_DENON = {
-    "0 dB": "0",
-    "5 dB": "5",
-    "10 dB": "10",
-    "15 dB": "15",
-}
+def _db_option_to_value(option: str):
+    if option == "Off":
+        return "0"
+    if option == "0dB":
+        return "80"
+    if option.startswith("+"):
+        return str(80 + int(option[1:-2]))
+    if option.startswith("-"):
+        return str(80 - int(option[1:-2]))
+    return None
 
 
-async def async_setup_entry(
-    hass: HomeAssistant,
-    entry: ConfigEntry,
-    async_add_entities: AddEntitiesCallback,
-) -> None:
-    data = hass.data[DOMAIN][entry.entry_id]
-    coordinator = data["coordinator"]
-
-    async_add_entities(
-        [
-            DenonSpeakerPresetSelect(
-                coordinator,
-                entry.entry_id,
-            ),
-            DenonDynamicVolumeSelect(
-                coordinator,
-                entry.entry_id,
-            ),
-            DenonReferenceLevelOffsetSelect(
-                coordinator,
-                entry.entry_id,
-            ),
-        ]
-    )
+def _value_to_db_option(value, include_off: bool):
+    if value is None:
+        return None
+    try:
+        n = int(value)
+    except (ValueError, TypeError):
+        return None
+    if n == 0 and include_off:
+        return "Off"
+    db = n - 80
+    if db == 0:
+        return "0dB"
+    return f"+{db}dB" if db > 0 else f"{db}dB"
 
 
-class DenonSpeakerPresetSelect(
-    CoordinatorEntity[DenonAdvancedAudioCoordinator],
-    SelectEntity,
-):
-    """Denon Speaker Preset selector."""
+async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry, async_add_entities: AddEntitiesCallback) -> None:
+    coord = hass.data[DOMAIN][entry.entry_id]["coordinator"]
+    async_add_entities([
+        DenonSpeakerPresetSelect(coord, entry.entry_id),
+        DenonRestorerSelect(coord, entry.entry_id),
+        DenonDynamicVolumeSelect(coord, entry.entry_id),
+        DenonReferenceLevelOffsetSelect(coord, entry.entry_id),
+        DenonVolumeScaleSelect(coord, entry.entry_id),
+        DenonVolumeLimitSelect(coord, entry.entry_id),
+        DenonPowerOnLevelSelect(coord, entry.entry_id),
+        DenonMuteLevelSelect(coord, entry.entry_id),
+        DenonNetworkControlSelect(coord, entry.entry_id),
+        DenonMultEQSelect(coord, entry.entry_id),
+    ])
 
+
+class DenonSpeakerPresetSelect(DenonBaseEntity, SelectEntity):
     _attr_name = "Speaker Preset"
     _attr_icon = "mdi:surround-sound"
     _attr_options = SPEAKER_PRESET_OPTIONS
 
-    def __init__(
-        self,
-        coordinator: DenonAdvancedAudioCoordinator,
-        entry_id: str,
-    ) -> None:
-        super().__init__(coordinator)
+    def __init__(self, coord, entry_id):
+        super().__init__(coord, entry_id)
         self._attr_unique_id = f"{entry_id}_speaker_preset"
 
     @property
-    def current_option(self) -> str | None:
-        preset = self.coordinator.data.get("speaker_preset")
+    def current_option(self):
+        p = self.coordinator.data.get("speaker_preset")
+        return {"1": "Preset 1", "2": "Preset 2"}.get(p)
 
-        if preset == "1":
-            return "Preset 1"
-
-        if preset == "2":
-            return "Preset 2"
-
-        return None
-
-    async def async_select_option(
-        self,
-        option: str,
-    ) -> None:
-        if option == "Preset 1":
-            await self.coordinator.api.async_set_speaker_preset("1")
-
-        elif option == "Preset 2":
-            await self.coordinator.api.async_set_speaker_preset("2")
-
+    async def async_select_option(self, option):
+        await self.coordinator.api.async_set_speaker_preset("1" if option == "Preset 1" else "2")
         await self.coordinator.async_request_refresh()
 
 
-class DenonDynamicVolumeSelect(
-    CoordinatorEntity[DenonAdvancedAudioCoordinator],
-    SelectEntity,
-):
-    """Denon Dynamic Volume selector."""
+class DenonRestorerSelect(DenonBaseEntity, SelectEntity):
+    _attr_name = "Restorer"
+    _attr_icon = "mdi:music-circle-outline"
+    _attr_options = RESTORER_OPTIONS
 
+    def __init__(self, coord, entry_id):
+        super().__init__(coord, entry_id)
+        self._attr_unique_id = f"{entry_id}_restorer"
+
+    @property
+    def current_option(self):
+        return RESTORER_FROM.get(self.coordinator.data.get("restorer") or "")
+
+    async def async_select_option(self, option):
+        v = RESTORER_TO.get(option)
+        if v:
+            await self.coordinator.api.async_set_restorer(v)
+            await self.coordinator.async_request_refresh()
+
+
+class DenonDynamicVolumeSelect(DenonBaseEntity, SelectEntity):
     _attr_name = "Dynamic Volume"
     _attr_icon = "mdi:volume-high"
-    _attr_options = DYNAMIC_VOLUME_OPTIONS
+    _attr_options = DYNVOL_OPTIONS
 
-    def __init__(
-        self,
-        coordinator: DenonAdvancedAudioCoordinator,
-        entry_id: str,
-    ) -> None:
-        super().__init__(coordinator)
+    def __init__(self, coord, entry_id):
+        super().__init__(coord, entry_id)
         self._attr_unique_id = f"{entry_id}_dynamic_volume"
 
     @property
-    def current_option(self) -> str | None:
-        value = self.coordinator.data.get("dynamic_volume")
+    def current_option(self):
+        return DYNVOL_FROM.get(self.coordinator.data.get("dynamic_volume") or "")
 
-        if value is None:
-            return None
-
-        return DYNAMIC_VOLUME_FROM_DENON.get(value)
-
-    async def async_select_option(
-        self,
-        option: str,
-    ) -> None:
-        denon_value = DYNAMIC_VOLUME_TO_DENON.get(option)
-
-        if denon_value is None:
-            return
-
-        await self.coordinator.api.async_set_dynamic_volume(
-            denon_value,
-        )
-
-        await self.coordinator.async_request_refresh()
+    async def async_select_option(self, option):
+        v = DYNVOL_TO.get(option)
+        if v:
+            await self.coordinator.api.async_set_dynamic_volume(v)
+            await self.coordinator.async_request_refresh()
 
 
-class DenonReferenceLevelOffsetSelect(
-    CoordinatorEntity[DenonAdvancedAudioCoordinator],
-    SelectEntity,
-):
-    """Denon Reference Level Offset selector."""
-
+class DenonReferenceLevelOffsetSelect(DenonBaseEntity, SelectEntity):
     _attr_name = "Reference Level Offset"
     _attr_icon = "mdi:volume-equal"
-    _attr_options = REFERENCE_LEVEL_OPTIONS
+    _attr_options = REFLEV_OPTIONS
 
-    def __init__(
-        self,
-        coordinator: DenonAdvancedAudioCoordinator,
-        entry_id: str,
-    ) -> None:
-        super().__init__(coordinator)
+    def __init__(self, coord, entry_id):
+        super().__init__(coord, entry_id)
         self._attr_unique_id = f"{entry_id}_reference_level_offset"
 
     @property
-    def current_option(self) -> str | None:
-        value = self.coordinator.data.get("reference_level_offset")
+    def current_option(self):
+        v = self.coordinator.data.get("reference_level_offset")
+        return REFLEV_FROM.get(v or "")
 
-        if value is None:
-            return None
+    async def async_select_option(self, option):
+        v = REFLEV_TO.get(option)
+        if v is not None:
+            await self.coordinator.api.async_set_reference_level_offset(v)
+            await self.coordinator.async_request_refresh()
 
-        return f"{value} dB"
 
-    async def async_select_option(
-        self,
-        option: str,
-    ) -> None:
-        denon_value = REFERENCE_LEVEL_TO_DENON.get(option)
+class DenonVolumeScaleSelect(DenonBaseEntity, SelectEntity):
+    _attr_name = "Volume Scale"
+    _attr_icon = "mdi:tune-vertical"
+    _attr_options = VOLUME_SCALE_OPTIONS
 
-        if denon_value is None:
-            return
+    def __init__(self, coord, entry_id):
+        super().__init__(coord, entry_id)
+        self._attr_unique_id = f"{entry_id}_volume_scale"
 
-        await self.coordinator.api.async_set_reference_level_offset(
-            denon_value,
-        )
+    @property
+    def current_option(self):
+        return VOLUME_SCALE_FROM.get(self.coordinator.data.get("volume_scale") or "")
 
-        await self.coordinator.async_request_refresh()
+    async def async_select_option(self, option):
+        v = VOLUME_SCALE_TO.get(option)
+        if v:
+            await self.coordinator.api.async_set_volume_scale(v)
+            await self.coordinator.async_request_refresh()
+
+
+class DenonVolumeLimitSelect(DenonBaseEntity, SelectEntity):
+    _attr_name = "Volume Limit"
+    _attr_icon = "mdi:volume-minus"
+    _attr_options = VOLUME_LIMIT_OPTIONS
+
+    def __init__(self, coord, entry_id):
+        super().__init__(coord, entry_id)
+        self._attr_unique_id = f"{entry_id}_volume_limit"
+
+    @property
+    def current_option(self):
+        return _value_to_db_option(self.coordinator.data.get("volume_limit"), include_off=True)
+
+    async def async_select_option(self, option):
+        v = _db_option_to_value(option)
+        if v is not None:
+            await self.coordinator.api.async_set_volume_limit(v)
+            await self.coordinator.async_request_refresh()
+
+
+class DenonPowerOnLevelSelect(DenonBaseEntity, SelectEntity):
+    _attr_name = "Power On Level"
+    _attr_icon = "mdi:power-standby"
+    _attr_options = PON_OPTIONS
+
+    def __init__(self, coord, entry_id):
+        super().__init__(coord, entry_id)
+        self._attr_unique_id = f"{entry_id}_power_on_level"
+
+    @property
+    def current_option(self):
+        return _value_to_db_option(self.coordinator.data.get("volume_power_on_level"), include_off=False)
+
+    async def async_select_option(self, option):
+        v = _db_option_to_value(option)
+        if v is not None:
+            await self.coordinator.api.async_set_volume_power_on_level(v)
+            await self.coordinator.async_request_refresh()
+
+
+class DenonMuteLevelSelect(DenonBaseEntity, SelectEntity):
+    _attr_name = "Mute Level"
+    _attr_icon = "mdi:volume-mute"
+    _attr_options = MUTE_LEVEL_OPTIONS
+
+    def __init__(self, coord, entry_id):
+        super().__init__(coord, entry_id)
+        self._attr_unique_id = f"{entry_id}_mute_level"
+
+    @property
+    def current_option(self):
+        return MUTE_LEVEL_FROM.get(self.coordinator.data.get("volume_mute_level") or "")
+
+    async def async_select_option(self, option):
+        v = MUTE_LEVEL_TO.get(option)
+        if v:
+            await self.coordinator.api.async_set_volume_mute_level(v)
+            await self.coordinator.async_request_refresh()
+
+
+class DenonNetworkControlSelect(DenonBaseEntity, SelectEntity):
+    _attr_name = "Network Control"
+    _attr_icon = "mdi:lan"
+    _attr_options = NETWORK_CONTROL_OPTIONS
+
+    def __init__(self, coord, entry_id):
+        super().__init__(coord, entry_id)
+        self._attr_unique_id = f"{entry_id}_network_control"
+
+    @property
+    def current_option(self):
+        return NETWORK_CONTROL_FROM.get(self.coordinator.data.get("network_control") or "")
+
+    async def async_select_option(self, option):
+        v = NETWORK_CONTROL_TO.get(option)
+        if v:
+            await self.coordinator.api.async_set_network_control(v)
+            await self.coordinator.async_request_refresh()
+
+
+class DenonMultEQSelect(DenonBaseEntity, SelectEntity):
+    _attr_name = "MultEQ XT32"
+    _attr_icon = "mdi:tune"
+    _attr_options = MULTEQ_OPTIONS
+
+    def __init__(self, coord, entry_id):
+        super().__init__(coord, entry_id)
+        self._attr_unique_id = f"{entry_id}_multeq"
+
+    @property
+    def current_option(self):
+        return MULTEQ_FROM.get(self.coordinator.data.get("multeq") or "")
+
+    async def async_select_option(self, option):
+        v = MULTEQ_TO.get(option)
+        if v:
+            await self.coordinator.api.async_set_multeq(v)
+            await self.coordinator.async_request_refresh()
