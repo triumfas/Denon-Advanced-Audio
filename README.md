@@ -255,6 +255,7 @@ That's expected if your AVR model doesn't support those zones (like the AVR-X370
 
 ## Version history
 
+- **v0.1.4** -- Integration branding added (icon and logo submitted to home-assistant/brands)
 - **v0.1.3** — Zone Power switches (Main + Zone 2/3/4 with custom names), ECO / General settings (ECO Mode, Power On Default, OSD, Auto Standby), icon fixes for subwoofer and AirPlay
 - **v0.1.2** — Fix AirPlay state parsing (nested XML)
 - **v0.1.1** — Fix inverted On/Off states for Dynamic EQ, Auto Lip Sync, Network Control
@@ -277,4 +278,5 @@ MIT — see [LICENSE](LICENSE)
 
 - Inspired by the [denonavr](https://github.com/ol-iver/denonavr) Python library
 - Reverse-engineered from the Denon AVR-X3700H web control interface
+
 
