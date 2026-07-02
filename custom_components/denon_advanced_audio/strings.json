@@ -1,0 +1,22 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Denon Advanced Audio",
+        "description": "Configure Denon AVR advanced audio controls.",
+        "data": {
+          "base_url": "Base URL",
+          "verify_ssl": "Verify SSL certificate"
+        }
+      }
+    },
+    "error": {
+      "cannot_connect": "Cannot connect to Denon AVR.",
+      "invalid_response": "Connected, but Denon AVR did not return a valid Speaker Preset response.",
+      "unknown": "Unexpected error."
+    },
+    "abort": {
+      "already_configured": "This Denon AVR is already configured."
+    }
+  }
+}

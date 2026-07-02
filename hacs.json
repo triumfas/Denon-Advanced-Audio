@@ -1,0 +1,10 @@
+{
+  "name": "Denon Advanced Audio",
+  "render_readme": true,
+  "domains": [
+    "select",
+    "sensor",
+    "switch"
+  ],
+  "homeassistant": "2024.6.0"
+}
