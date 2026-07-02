@@ -16,6 +16,10 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry, async_add_e
         DenonLfcSwitch(coord, entry.entry_id),
         DenonAirplaySwitch(coord, entry.entry_id),
         DenonAutoLipSyncSwitch(coord, entry.entry_id),
+        DenonMainZonePowerSwitch(coord, entry.entry_id),
+        DenonZone2PowerSwitch(coord, entry.entry_id),
+        DenonZone3PowerSwitch(coord, entry.entry_id),
+        DenonZone4PowerSwitch(coord, entry.entry_id),
     ])
 
 
@@ -65,7 +69,7 @@ class DenonLfcSwitch(DenonBaseEntity, SwitchEntity):
 
 class DenonAirplaySwitch(DenonBaseEntity, SwitchEntity):
     _attr_name = "AirPlay"
-    _attr_icon = "mdi:airplay"
+    _attr_icon = "mdi:cast-audio"
 
     def __init__(self, coord, entry_id):
         super().__init__(coord, entry_id)
@@ -106,3 +110,70 @@ class DenonAutoLipSyncSwitch(DenonBaseEntity, SwitchEntity):
         await self.coordinator.api.async_set_auto_lip_sync("2")
         await self.coordinator.async_request_refresh()
 
+
+class DenonZonePowerSwitch(DenonBaseEntity, SwitchEntity):
+    _attr_icon = "mdi:power"
+
+    _zone_key: str = ""
+    _data_key: str = ""
+    _default_name: str = ""
+    _name_key: str = ""
+
+    def __init__(self, coord, entry_id):
+        super().__init__(coord, entry_id)
+        self._attr_unique_id = f"{entry_id}_zone_power_{self._name_key}"
+
+    @property
+    def name(self):
+        zone_names = self.coordinator.data.get("zone_names") or {}
+        custom_name = zone_names.get(self._name_key)
+        if custom_name and custom_name.strip():
+            return f"{custom_name.strip()} Power"
+        return self._default_name
+
+    @property
+    def is_on(self):
+        v = self.coordinator.data.get(self._data_key)
+        return True if v == "1" else False if v in ("2", "3") else None
+
+    @property
+    def available(self) -> bool:
+        base_available = super().available if hasattr(super(), "available") else True
+        v = self.coordinator.data.get(self._data_key)
+        return bool(base_available) and v is not None
+
+    async def async_turn_on(self, **kwargs):
+        await self.coordinator.api.async_set_zone_power(self._zone_key, True)
+        await self.coordinator.async_request_refresh()
+
+    async def async_turn_off(self, **kwargs):
+        await self.coordinator.api.async_set_zone_power(self._zone_key, False)
+        await self.coordinator.async_request_refresh()
+
+
+class DenonMainZonePowerSwitch(DenonZonePowerSwitch):
+    _zone_key = "MainZone"
+    _data_key = "zone_power_main"
+    _default_name = "Main Zone Power"
+    _name_key = "main"
+
+
+class DenonZone2PowerSwitch(DenonZonePowerSwitch):
+    _zone_key = "Zone2"
+    _data_key = "zone_power_zone2"
+    _default_name = "Zone 2 Power"
+    _name_key = "zone2"
+
+
+class DenonZone3PowerSwitch(DenonZonePowerSwitch):
+    _zone_key = "Zone3"
+    _data_key = "zone_power_zone3"
+    _default_name = "Zone 3 Power"
+    _name_key = "zone3"
+
+
+class DenonZone4PowerSwitch(DenonZonePowerSwitch):
+    _zone_key = "Zone4"
+    _data_key = "zone_power_zone4"
+    _default_name = "Zone 4 Power"
+    _name_key = "zone4"

@@ -39,6 +39,26 @@ MULTEQ_OPTIONS = ["Reference", "L/R Bypass", "Flat", "Off"]
 MULTEQ_TO = {"Reference": "1", "L/R Bypass": "2", "Flat": "3", "Off": "4"}
 MULTEQ_FROM = {v: k for k, v in MULTEQ_TO.items()}
 
+ECO_MODE_OPTIONS = ["On", "Auto", "Off"]
+ECO_MODE_TO = {"On": "1", "Auto": "2", "Off": "3"}
+ECO_MODE_FROM = {v: k for k, v in ECO_MODE_TO.items()}
+
+POWER_ON_DEFAULT_OPTIONS = ["Last", "On", "Auto", "Off"]
+POWER_ON_DEFAULT_TO = {"Last": "1", "On": "3", "Auto": "2", "Off": "4"}
+POWER_ON_DEFAULT_FROM = {v: k for k, v in POWER_ON_DEFAULT_TO.items()}
+
+OSD_OPTIONS = ["Always On", "Auto", "Off"]
+OSD_TO = {"Always On": "1", "Auto": "2", "Off": "3"}
+OSD_FROM = {v: k for k, v in OSD_TO.items()}
+
+AS_MAIN_OPTIONS = ["60 min", "30 min", "15 min", "Off"]
+AS_MAIN_TO = {"60 min": "1", "30 min": "2", "15 min": "3", "Off": "4"}
+AS_MAIN_FROM = {v: k for k, v in AS_MAIN_TO.items()}
+
+AS_Z2_OPTIONS = ["8 hours", "4 hours", "2 hours", "Off"]
+AS_Z2_TO = {"8 hours": "1", "4 hours": "2", "2 hours": "3", "Off": "4"}
+AS_Z2_FROM = {v: k for k, v in AS_Z2_TO.items()}
+
 PON_OPTIONS = [f"-{i}dB" for i in range(80, 0, -1)] + ["0dB"] + [f"+{i}dB" for i in range(1, 19)]
 
 
@@ -82,6 +102,11 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry, async_add_e
         DenonMuteLevelSelect(coord, entry.entry_id),
         DenonNetworkControlSelect(coord, entry.entry_id),
         DenonMultEQSelect(coord, entry.entry_id),
+        DenonEcoModeSelect(coord, entry.entry_id),
+        DenonPowerOnDefaultSelect(coord, entry.entry_id),
+        DenonOnScreenDisplaySelect(coord, entry.entry_id),
+        DenonAutoStandbyMainSelect(coord, entry.entry_id),
+        DenonAutoStandbyZone2Select(coord, entry.entry_id),
     ])
 
 
@@ -282,4 +307,104 @@ class DenonMultEQSelect(DenonBaseEntity, SelectEntity):
         v = MULTEQ_TO.get(option)
         if v:
             await self.coordinator.api.async_set_multeq(v)
+            await self.coordinator.async_request_refresh()
+
+
+class DenonEcoModeSelect(DenonBaseEntity, SelectEntity):
+    _attr_name = "ECO Mode"
+    _attr_icon = "mdi:leaf"
+    _attr_options = ECO_MODE_OPTIONS
+
+    def __init__(self, coord, entry_id):
+        super().__init__(coord, entry_id)
+        self._attr_unique_id = f"{entry_id}_eco_mode"
+
+    @property
+    def current_option(self):
+        return ECO_MODE_FROM.get(self.coordinator.data.get("eco_mode") or "")
+
+    async def async_select_option(self, option):
+        v = ECO_MODE_TO.get(option)
+        if v:
+            await self.coordinator.api.async_set_eco_mode(v)
+            await self.coordinator.async_request_refresh()
+
+
+class DenonPowerOnDefaultSelect(DenonBaseEntity, SelectEntity):
+    _attr_name = "Power On Default"
+    _attr_icon = "mdi:power-standby"
+    _attr_options = POWER_ON_DEFAULT_OPTIONS
+
+    def __init__(self, coord, entry_id):
+        super().__init__(coord, entry_id)
+        self._attr_unique_id = f"{entry_id}_power_on_default"
+
+    @property
+    def current_option(self):
+        return POWER_ON_DEFAULT_FROM.get(self.coordinator.data.get("eco_power_on_default") or "")
+
+    async def async_select_option(self, option):
+        v = POWER_ON_DEFAULT_TO.get(option)
+        if v:
+            await self.coordinator.api.async_set_power_on_default(v)
+            await self.coordinator.async_request_refresh()
+
+
+class DenonOnScreenDisplaySelect(DenonBaseEntity, SelectEntity):
+    _attr_name = "On Screen Display"
+    _attr_icon = "mdi:monitor"
+    _attr_options = OSD_OPTIONS
+
+    def __init__(self, coord, entry_id):
+        super().__init__(coord, entry_id)
+        self._attr_unique_id = f"{entry_id}_on_screen_display"
+
+    @property
+    def current_option(self):
+        return OSD_FROM.get(self.coordinator.data.get("eco_on_screen_display") or "")
+
+    async def async_select_option(self, option):
+        v = OSD_TO.get(option)
+        if v:
+            await self.coordinator.api.async_set_on_screen_display(v)
+            await self.coordinator.async_request_refresh()
+
+
+class DenonAutoStandbyMainSelect(DenonBaseEntity, SelectEntity):
+    _attr_name = "Auto Standby Main Zone"
+    _attr_icon = "mdi:sleep"
+    _attr_options = AS_MAIN_OPTIONS
+
+    def __init__(self, coord, entry_id):
+        super().__init__(coord, entry_id)
+        self._attr_unique_id = f"{entry_id}_auto_standby_main"
+
+    @property
+    def current_option(self):
+        return AS_MAIN_FROM.get(self.coordinator.data.get("eco_auto_standby_main") or "")
+
+    async def async_select_option(self, option):
+        v = AS_MAIN_TO.get(option)
+        if v:
+            await self.coordinator.api.async_set_auto_standby_main(v)
+            await self.coordinator.async_request_refresh()
+
+
+class DenonAutoStandbyZone2Select(DenonBaseEntity, SelectEntity):
+    _attr_name = "Auto Standby Zone 2"
+    _attr_icon = "mdi:sleep"
+    _attr_options = AS_Z2_OPTIONS
+
+    def __init__(self, coord, entry_id):
+        super().__init__(coord, entry_id)
+        self._attr_unique_id = f"{entry_id}_auto_standby_zone2"
+
+    @property
+    def current_option(self):
+        return AS_Z2_FROM.get(self.coordinator.data.get("eco_auto_standby_zone2") or "")
+
+    async def async_select_option(self, option):
+        v = AS_Z2_TO.get(option)
+        if v:
+            await self.coordinator.api.async_set_auto_standby_zone2(v)
             await self.coordinator.async_request_refresh()

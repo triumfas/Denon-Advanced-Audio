@@ -154,6 +154,82 @@ class DenonAdvancedAudioApi:
     async def async_set_audio_delay_adjust(self, value: str):
         await self._ajax_set("audio", 6, f"<Adjust>{value}</Adjust>")
 
+    async def async_get_zone_power(self) -> dict:
+        result = {"main": None, "zone2": None, "zone3": None, "zone4": None}
+        try:
+            url = f"{self.base_url}/ajax/globals/get_config?type=4"
+            text = await self._http_get_text(url)
+            m = re.search(r"<MainZone[^>]*>\s*<Power[^>]*>([^<]+)</Power>", text)
+            if m: result["main"] = m.group(1)
+            m = re.search(r"<Zone2[^>]*>\s*<Power[^>]*>([^<]+)</Power>", text)
+            if m: result["zone2"] = m.group(1)
+            m = re.search(r"<Zone3[^>]*>\s*<Power[^>]*>([^<]+)</Power>", text)
+            if m: result["zone3"] = m.group(1)
+            m = re.search(r"<Zone4[^>]*>\s*<Power[^>]*>([^<]+)</Power>", text)
+            if m: result["zone4"] = m.group(1)
+        except Exception:
+            pass
+        return result
+
+    async def async_get_zone_names(self) -> dict:
+        result = {"main": None, "zone2": None, "zone3": None, "zone4": None}
+        try:
+            url = f"{self.base_url}/ajax/globals/get_config?type=6"
+            text = await self._http_get_text(url)
+            m = re.search(r"<MainZone[^>]*>([^<]*)</MainZone>", text)
+            if m and m.group(1).strip(): result["main"] = m.group(1).strip()
+            m = re.search(r"<Zone2[^>]*>([^<]*)</Zone2>", text)
+            if m and m.group(1).strip(): result["zone2"] = m.group(1).strip()
+            m = re.search(r"<Zone3[^>]*>([^<]*)</Zone3>", text)
+            if m and m.group(1).strip(): result["zone3"] = m.group(1).strip()
+            m = re.search(r"<Zone4[^>]*>([^<]*)</Zone4>", text)
+            if m and m.group(1).strip(): result["zone4"] = m.group(1).strip()
+        except Exception:
+            pass
+        return result
+
+    async def async_set_zone_power(self, zone_key: str, on: bool):
+        v = "1" if on else "3"
+        payload = f"<{zone_key}><Power>{v}</Power></{zone_key}>"
+        data = quote(payload, safe="")
+        url = f"{self.base_url}/ajax/globals/set_config?type=4&data={data}"
+        await self._http_get_text(url)
+        await asyncio.sleep(0.3)
+
+    async def async_get_eco_config(self) -> dict:
+        result = {"mode": None, "power_on_default": None, "on_screen_display": None,
+                  "auto_standby_main": None, "auto_standby_zone2": None}
+        try:
+            text = await self._ajax_get("general", 3)
+            result["mode"] = self._extract(text, "Mode")
+            result["power_on_default"] = self._extract(text, "PowerOnDefault")
+            result["on_screen_display"] = self._extract(text, "OnScreenDisplay")
+            m = re.search(r"<AutoStandby[^>]*>(.*?)</AutoStandby>", text, re.DOTALL)
+            if m:
+                inner = m.group(1)
+                mm = re.search(r"<MainZone[^>]*>([^<]+)</MainZone>", inner)
+                if mm: result["auto_standby_main"] = mm.group(1)
+                mz = re.search(r"<Zone2[^>]*>([^<]+)</Zone2>", inner)
+                if mz: result["auto_standby_zone2"] = mz.group(1)
+        except Exception:
+            pass
+        return result
+
+    async def async_set_eco_mode(self, value: str):
+        await self._ajax_set("general", 3, f"<Mode>{value}</Mode>")
+
+    async def async_set_power_on_default(self, value: str):
+        await self._ajax_set("general", 3, f"<PowerOnDefault>{value}</PowerOnDefault>")
+
+    async def async_set_on_screen_display(self, value: str):
+        await self._ajax_set("general", 3, f"<OnScreenDisplay>{value}</OnScreenDisplay>")
+
+    async def async_set_auto_standby_main(self, value: str):
+        await self._ajax_set("general", 3, f"<AutoStandby><MainZone>{value}</MainZone></AutoStandby>")
+
+    async def async_set_auto_standby_zone2(self, value: str):
+        await self._ajax_set("general", 3, f"<AutoStandby><Zone2>{value}</Zone2></AutoStandby>")
+
     async def async_get_device_info(self) -> dict:
         result = {"model": None, "name": None, "mac": None, "sw_version": None}
         try:
@@ -185,6 +261,11 @@ class DenonAdvancedAudioApi:
             "reference_level_offset": None, "lfc": None,
             "containment_amount": None, "containment_amount_enabled": False,
             "auto_lip_sync": None, "audio_delay_adjust": None,
+            "zone_power_main": None, "zone_power_zone2": None,
+            "zone_power_zone3": None, "zone_power_zone4": None,
+            "zone_names": {"main": None, "zone2": None, "zone3": None, "zone4": None},
+            "eco_mode": None, "eco_power_on_default": None, "eco_on_screen_display": None,
+            "eco_auto_standby_main": None, "eco_auto_standby_zone2": None,
         }
         try: data["speaker_preset"] = await self.async_get_speaker_preset()
         except Exception: pass
@@ -222,5 +303,23 @@ class DenonAdvancedAudioApi:
             data["auto_lip_sync"] = ad.get("auto_lip_sync")
             data["audio_delay_adjust"] = ad.get("adjust")
         except Exception: pass
+        try:
+            zp = await self.async_get_zone_power()
+            data["zone_power_main"] = zp.get("main")
+            data["zone_power_zone2"] = zp.get("zone2")
+            data["zone_power_zone3"] = zp.get("zone3")
+            data["zone_power_zone4"] = zp.get("zone4")
+        except Exception: pass
+        try:
+            data["zone_names"] = await self.async_get_zone_names()
+        except Exception:
+            data["zone_names"] = {"main": None, "zone2": None, "zone3": None, "zone4": None}
+        try:
+            eco = await self.async_get_eco_config()
+            data["eco_mode"] = eco.get("mode")
+            data["eco_power_on_default"] = eco.get("power_on_default")
+            data["eco_on_screen_display"] = eco.get("on_screen_display")
+            data["eco_auto_standby_main"] = eco.get("auto_standby_main")
+            data["eco_auto_standby_zone2"] = eco.get("auto_standby_zone2")
+        except Exception: pass
         return data
-

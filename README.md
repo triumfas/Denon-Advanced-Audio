@@ -1,6 +1,6 @@
 # Denon Advanced Audio — Home Assistant Integration
 
-Home Assistant custom integration exposing **advanced Denon AVR audio settings** that are not available in the built-in Denon integration — Speaker Presets, MultEQ XT32, Dynamic EQ, Dynamic Volume, Reference Level Offset, Audyssey LFC, Containment Amount, Subwoofer Levels, Volume settings, Audio Delay / Lip Sync, Restorer, Network Control, AirPlay and more.
+Home Assistant custom integration exposing **advanced Denon AVR settings** that are not available in the built-in Denon integration — Speaker Presets, MultEQ XT32, full Audyssey control, Zone Power, ECO / power-saving settings, Subwoofer Levels, Volume settings, Audio Delay, Restorer, Network Control, AirPlay, and more.
 
 Developed and tested against **Denon AVR-X3700H**, but should work with any Denon AVR-X or AVC series receiver that exposes the standard `/ajax/` web control endpoints.
 
@@ -36,6 +36,23 @@ Developed and tested against **Denon AVR-X3700H**, but should work with any Deno
 - **Auto Lip Sync** — on / off
 - **Audio Delay** — 0 – 999 ms
 
+### Zone Power *(new in v0.1.3)*
+
+- **Main Zone Power** — on / off
+- **Zone 2 Power** — on / off
+- **Zone 3 Power** — auto-hidden if not supported by your AVR
+- **Zone 4 Power** — auto-hidden if not supported by your AVR
+
+Each switch uses the **custom zone name** configured on the AVR (e.g. if Zone 2 is renamed to "Kitchen", the entity appears as "Kitchen Power").
+
+### ECO / General *(new in v0.1.3)*
+
+- **ECO Mode** — On / Auto / Off
+- **Power On Default** — Last / On / Auto / Off
+- **On Screen Display** — Always On / Auto / Off
+- **Auto Standby Main Zone** — 60 min / 30 min / 15 min / Off
+- **Auto Standby Zone 2** — 8 hours / 4 hours / 2 hours / Off
+
 ### Network
 
 - **Network Control** — Off / Always On
@@ -69,6 +86,15 @@ Developed and tested against **Denon AVR-X3700H**, but should work with any Deno
 | Subwoofer Level 2 | number | -12.0 … +12.0 dB, step 0.5 |
 | Auto Lip Sync | switch | on / off |
 | Audio Delay | number | 0 – 999 ms |
+| Main Zone Power | switch | Uses custom zone name |
+| Zone 2 Power | switch | Uses custom zone name |
+| Zone 3 Power | switch | Hidden if not supported |
+| Zone 4 Power | switch | Hidden if not supported |
+| ECO Mode | select | On / Auto / Off |
+| Power On Default | select | Last / On / Auto / Off |
+| On Screen Display | select | Always On / Auto / Off |
+| Auto Standby Main Zone | select | 60 / 30 / 15 min / Off |
+| Auto Standby Zone 2 | select | 8 / 4 / 2 hours / Off |
 | Network Control | select | Off / Always On |
 | AirPlay | switch | on / off |
 
@@ -180,14 +206,19 @@ Benefits:
 | Volume settings | `/ajax/audio/get_config?type=7` / `set_config?type=7` | `<Scale>`, `<Limit>`, `<PowerOnLevel>`, `<MuteLevel>` |
 | Subwoofer Levels | `/ajax/audio/get_config?type=3` / `set_config?type=3` | `<SubwooferLevel1>`, `<SubwooferLevel2>` |
 | Audyssey (all) | `/ajax/audio/get_config?type=9` / `set_config?type=9` | `<MultEQ>`, `<DynamicEQ>`, `<ReferenceLevelOffset>`, `<DynamicVolume>`, `<AudysseyLFC>`, `<Containmentamount>` |
+| Zone Power | `/ajax/globals/get_config?type=4` / `set_config?type=4` | `<MainZone><Power>X</Power></MainZone>`, `<Zone2><Power>X</Power></Zone2>` |
+| Zone Names | `/ajax/globals/get_config?type=6` | `<MainZone>`, `<Zone2>` friendly names |
+| ECO / General | `/ajax/general/get_config?type=3` / `set_config?type=3` | `<Mode>`, `<PowerOnDefault>`, `<OnScreenDisplay>`, `<AutoStandby>` |
 | Network Control | `/ajax/network/get_config?type=5` / `set_config?type=5` | `<Control>X</Control>` |
 | Device Info | `/ajax/network/get_config?type=6` | `<DefaultName>`, `<CurrentName>` |
-| AirPlay | `/ajax/network/get_config?type=9` / `set_config?type=9` | `<AirPlay>X</AirPlay>` |
+| AirPlay | `/ajax/network/get_config?type=9` / `set_config?type=9` | `<AirPlay><Value>X</Value></AirPlay>` |
 
 ### Value encodings
 
 - **Volume Limit / Power On Level** → `dB + 80` (e.g. `-52 dB` = `28`, `0 dB` = `80`, `+18 dB` = `98`)
 - **Subwoofer Level 1 / 2** → `dB × 10` (e.g. `-1.5 dB` = `-15`, `+3.0 dB` = `30`)
+- **Zone Power** → `1` = On, `3` = Off (the same values the Denon UI shows as green/red icons)
+- **Boolean settings** — Denon convention: `1` = On, `2` = Off
 
 ---
 
@@ -213,6 +244,10 @@ Benefits:
 
 That is by design. **Containment Amount is only adjustable when Audyssey LFC is On.** Turn on the LFC switch first — the Containment Amount entity will then become available. When LFC is off, the AVR itself greys the field out.
 
+### Zone 3 or Zone 4 power switch shows as unavailable
+
+That's expected if your AVR model doesn't support those zones (like the AVR-X3700H, which only has Main Zone and Zone 2). The switches will automatically become available on models that expose Zone 3 / Zone 4.
+
 ### Model or device name is wrong
 
 - Model comes from **Network → Friendly Name → Default Name** on the AVR
@@ -222,6 +257,9 @@ That is by design. **Containment Amount is only adjustable when Audyssey LFC is 
 
 ## Version history
 
+- **v0.1.3** — Zone Power switches (Main + Zone 2/3/4 with custom names), ECO / General settings (ECO Mode, Power On Default, OSD, Auto Standby), icon fixes for subwoofer and AirPlay
+- **v0.1.2** — Fix AirPlay state parsing (nested XML)
+- **v0.1.1** — Fix inverted On/Off states for Dynamic EQ, Auto Lip Sync, Network Control
 - **v0.1.0** — 100% HTTP: removed telnet, moved Audyssey to a single web endpoint, added Containment Amount
 - **v0.0.9** — Added Auto Lip Sync switch and Audio Delay number
 - **v0.0.8** — Added MultEQ XT32 select and Subwoofer Level 1 / 2 numbers

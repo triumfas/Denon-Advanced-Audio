@@ -20,7 +20,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry, async_add_e
 
 
 class _DenonSubwooferBase(DenonBaseEntity, NumberEntity):
-    _attr_icon = "mdi:subwoofer"
+    _attr_icon = "mdi:speaker"
     _attr_native_min_value = -12.0
     _attr_native_max_value = 12.0
     _attr_native_step = 0.5
