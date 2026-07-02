@@ -3,6 +3,7 @@ from __future__ import annotations
 from homeassistant.components.select import SelectEntity
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
+from homeassistant.helpers.entity import EntityCategory
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
 from .const import DOMAIN
@@ -59,6 +60,10 @@ AS_Z2_OPTIONS = ["8 hours", "4 hours", "2 hours", "Off"]
 AS_Z2_TO = {"8 hours": "1", "4 hours": "2", "2 hours": "3", "Off": "4"}
 AS_Z2_FROM = {v: k for k, v in AS_Z2_TO.items()}
 
+FRONT_DISPLAY_OPTIONS = ["Bright", "Dim", "Dark", "Off"]
+FRONT_DISPLAY_TO = {"Bright": "1", "Dim": "2", "Dark": "3", "Off": "4"}
+FRONT_DISPLAY_FROM = {v: k for k, v in FRONT_DISPLAY_TO.items()}
+
 PON_OPTIONS = [f"-{i}dB" for i in range(80, 0, -1)] + ["0dB"] + [f"+{i}dB" for i in range(1, 19)]
 
 
@@ -107,6 +112,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry, async_add_e
         DenonOnScreenDisplaySelect(coord, entry.entry_id),
         DenonAutoStandbyMainSelect(coord, entry.entry_id),
         DenonAutoStandbyZone2Select(coord, entry.entry_id),
+        DenonFrontDisplayDimmerSelect(coord, entry.entry_id),
     ])
 
 
@@ -407,4 +413,24 @@ class DenonAutoStandbyZone2Select(DenonBaseEntity, SelectEntity):
         v = AS_Z2_TO.get(option)
         if v:
             await self.coordinator.api.async_set_auto_standby_zone2(v)
+            await self.coordinator.async_request_refresh()
+
+
+class DenonFrontDisplayDimmerSelect(DenonBaseEntity, SelectEntity):
+    _attr_name = "Front Display"
+    _attr_icon = "mdi:television"
+    _attr_options = FRONT_DISPLAY_OPTIONS
+
+    def __init__(self, coord, entry_id):
+        super().__init__(coord, entry_id)
+        self._attr_unique_id = f"{entry_id}_front_display"
+
+    @property
+    def current_option(self):
+        return FRONT_DISPLAY_FROM.get(self.coordinator.data.get("front_display_dimmer") or "")
+
+    async def async_select_option(self, option):
+        v = FRONT_DISPLAY_TO.get(option)
+        if v:
+            await self.coordinator.api.async_set_front_display(v)
             await self.coordinator.async_request_refresh()

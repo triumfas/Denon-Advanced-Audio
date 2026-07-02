@@ -230,6 +230,42 @@ class DenonAdvancedAudioApi:
     async def async_set_auto_standby_zone2(self, value: str):
         await self._ajax_set("general", 3, f"<AutoStandby><Zone2>{value}</Zone2></AutoStandby>")
 
+    async def async_get_front_display(self):
+        text = await self._ajax_get("general", 10)
+        return self._extract(text, "Dimmer")
+
+    async def async_set_front_display(self, value: str):
+        await self._ajax_set("general", 10, f"<Dimmer>{value}</Dimmer>")
+
+    async def async_get_network_info(self) -> dict:
+        result = {"ip_address": None, "mac_ethernet": None, "mac_wifi": None, "connection": None, "dhcp": None}
+        try:
+            text = await self._ajax_get("network", 2)
+            result["ip_address"] = self._extract(text, "IPAddress")
+            result["connection"] = self._extract(text, "Connection")
+            result["dhcp"] = self._extract(text, "DHCP")
+            m = re.search(r"<MacAddress[^>]*>(.*?)</MacAddress>", text, re.DOTALL)
+            if m:
+                inner = m.group(1)
+                me = re.search(r"<Ethernet[^>]*>([^<]+)</Ethernet>", inner)
+                if me: result["mac_ethernet"] = me.group(1)
+                mw = re.search(r"<WiFi[^>]*>([^<]+)</WiFi>", inner)
+                if mw: result["mac_wifi"] = mw.group(1)
+        except Exception:
+            pass
+        return result
+
+    async def async_get_network_diagnostics(self) -> dict:
+        result = {"physical": None, "router": None, "internet": None}
+        try:
+            text = await self._ajax_get("network", 7)
+            result["physical"] = self._extract(text, "Connection")
+            result["router"] = self._extract(text, "RouterAccess")
+            result["internet"] = self._extract(text, "InternetAccess")
+        except Exception:
+            pass
+        return result
+
     async def async_get_device_info(self) -> dict:
         result = {"model": None, "name": None, "mac": None, "sw_version": None}
         try:
@@ -245,6 +281,16 @@ class DenonAdvancedAudioApi:
                 result["name"] = current_name.strip()
             elif default_name:
                 result["name"] = default_name.strip()
+        except Exception:
+            pass
+        try:
+            net = await self.async_get_network_info()
+            mac = net.get("mac_ethernet")
+            if mac:
+                mac = mac.strip().lower()
+                if len(mac) == 12:
+                    mac = ":".join(mac[i:i+2] for i in range(0, 12, 2))
+                result["mac"] = mac
         except Exception:
             pass
         return result
@@ -266,6 +312,10 @@ class DenonAdvancedAudioApi:
             "zone_names": {"main": None, "zone2": None, "zone3": None, "zone4": None},
             "eco_mode": None, "eco_power_on_default": None, "eco_on_screen_display": None,
             "eco_auto_standby_main": None, "eco_auto_standby_zone2": None,
+            "front_display_dimmer": None,
+            "network_ip": None, "network_mac_ethernet": None, "network_mac_wifi": None,
+            "network_connection": None, "network_dhcp": None,
+            "diag_physical": None, "diag_router": None, "diag_internet": None,
         }
         try: data["speaker_preset"] = await self.async_get_speaker_preset()
         except Exception: pass
@@ -321,5 +371,21 @@ class DenonAdvancedAudioApi:
             data["eco_on_screen_display"] = eco.get("on_screen_display")
             data["eco_auto_standby_main"] = eco.get("auto_standby_main")
             data["eco_auto_standby_zone2"] = eco.get("auto_standby_zone2")
+        except Exception: pass
+        try: data["front_display_dimmer"] = await self.async_get_front_display()
+        except Exception: pass
+        try:
+            ni = await self.async_get_network_info()
+            data["network_ip"] = ni.get("ip_address")
+            data["network_mac_ethernet"] = ni.get("mac_ethernet")
+            data["network_mac_wifi"] = ni.get("mac_wifi")
+            data["network_connection"] = ni.get("connection")
+            data["network_dhcp"] = ni.get("dhcp")
+        except Exception: pass
+        try:
+            nd = await self.async_get_network_diagnostics()
+            data["diag_physical"] = nd.get("physical")
+            data["diag_router"] = nd.get("router")
+            data["diag_internet"] = nd.get("internet")
         except Exception: pass
         return data
