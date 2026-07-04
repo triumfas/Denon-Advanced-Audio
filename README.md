@@ -332,7 +332,7 @@ These icons have been prepared for submission to the [home-assistant/brands](htt
 
 ## Version history
 
-- **v0.2.0** -- Reuses the shared HTTP client session (HTTP Keep-Alive) for faster response times and lower resource usage, and checks zone power before setting changes to prevent receiver API lockups.
+- **v0.2.1** -- Reuses the shared HTTP client session (HTTP Keep-Alive) for faster response times and lower resource usage, and checks zone power before setting changes to prevent receiver API lockups.
 - **v0.1.5** -- Front Display brightness control (Bright/Dim/Dark/Off), Network Information sensors (IP, MAC, DHCP, Connection), Network Diagnostics sensors (Physical/Router/Internet), MAC address added to device registry
 - **v0.1.4** -- Integration branding added (icon and logo)
 - **v0.1.3** -- Zone Power switches (Main + Zone 2/3/4 with custom names), ECO / General settings (ECO Mode, Power On Default, OSD, Auto Standby), icon fixes for subwoofer and AirPlay, integration branding added, removed redundant Speaker Preset State sensor
