@@ -1,0 +1,11 @@
+type: markdown
+title: Denon — Now Playing
+content: >
+  🎵 **{{ states('sensor.svetaine_denon_audio_format') }}**
+  · {{ states('sensor.svetaine_denon_audio_category') }}
+  · {{ states('sensor.svetaine_denon_audio_sample_rate') }}
+
+
+  📺 **{{ states('sensor.svetaine_denon_video_input_resolution') }}** →
+  **{{ states('sensor.svetaine_denon_video_output_resolution') }}**
+  · {{ states('sensor.svetaine_denon_video_scaling') }}
