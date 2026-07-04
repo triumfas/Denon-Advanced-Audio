@@ -7,14 +7,12 @@ from urllib.parse import quote
 import aiohttp
 
 
-from .telnet import DenonTelnetClient, extract_host
 class DenonAdvancedAudioApi:
     def __init__(self, base_url: str, verify_ssl: bool, session: aiohttp.ClientSession | None = None) -> None:
         self.base_url = base_url.rstrip("/")
         self.verify_ssl = verify_ssl
         self.session = session
 
-        self._telnet = DenonTelnetClient(extract_host(base_url))
     def _ssl_context(self) -> bool:
         return True if self.verify_ssl else False
 
@@ -313,8 +311,6 @@ class DenonAdvancedAudioApi:
         except Exception:
             pass
         return result
-    async def async_get_now_playing(self) -> dict:
-        return await self._telnet.async_query_now_playing()
 
     async def async_get_all(self) -> dict:
         data = {
@@ -337,9 +333,6 @@ class DenonAdvancedAudioApi:
             "network_ip": None, "network_mac_ethernet": None, "network_mac_wifi": None,
             "network_connection": None, "network_dhcp": None,
             "diag_physical": None, "diag_router": None, "diag_internet": None,
-            "audio_format_raw": None, "audio_signal_code": None,
-            "audio_category": None, "audio_sample_rate": None,
-            "video_input_res": None, "video_output_res": None,
         }
 
         sem = asyncio.Semaphore(4)
@@ -366,7 +359,6 @@ class DenonAdvancedAudioApi:
             "dimmer": run_safe(self.async_get_front_display()),
             "network_info": run_safe(self.async_get_network_info()),
             "diagnostics": run_safe(self.async_get_network_diagnostics()),
-            "now_playing": run_safe(self.async_get_now_playing()),
         }
 
         keys = list(tasks.keys())
@@ -445,15 +437,5 @@ class DenonAdvancedAudioApi:
             data["diag_physical"] = nd.get("physical")
             data["diag_router"] = nd.get("router")
             data["diag_internet"] = nd.get("internet")
-        np = res_dict.get("now_playing")
-        if np:
-            data["audio_format_raw"] = np.get("audio_format_raw")
-            data["audio_signal_code"] = np.get("audio_signal_code")
-            data["audio_category"] = np.get("audio_category")
-            data["audio_sample_rate"] = np.get("audio_sample_rate")
-            data["video_input_res"] = np.get("video_input_res")
-            data["video_output_res"] = np.get("video_output_res")
-
 
         return data
-
