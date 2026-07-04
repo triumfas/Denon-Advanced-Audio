@@ -12,40 +12,10 @@ DHCP_MAP = {"1": "On", "2": "Off"}
 DIAG_MAP = {"1": "OK", "2": "Failed", "3": "OK"}
 
 
-def category_from_sysda(sysda: str | None) -> str | None:
-    """Derive a friendly audio category from the SYSDA decoded-format string.
-
-    SYSDA is the authoritative "what is decoding right now" value pushed by
-    the AVR. SSINFAISSIG (the raw bitstream category code) sometimes lags
-    behind stream changes on X-series firmware, so we derive the category
-    from SYSDA to keep Audio Category and Audio Format consistent.
-    """
-    if not sysda:
-        return None
-    s = sysda.upper().strip()
-    if not s:
-        return None
-    if ("ATMOS" in s or "DOLBY" in s or "TRUEHD" in s
-            or s == "DD" or s.startswith("DD ") or s.startswith("DD+")):
-        return "Dolby"
-    if "DTS" in s:
-        return "DTS"
-    if "PCM" in s:
-        if "MULTI" in s:
-            return "Multi-ch PCM"
-        return "PCM"
-    if "ANALOG" in s:
-        return "Analog"
-    for token in ("MPEG", "AAC", "MP3", "FLAC", "ALAC", "WAV", "DSD", "WMA"):
-        if token in s:
-            return token
-    return sysda.strip().title()
-
-
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry, async_add_entities: AddEntitiesCallback) -> None:
     coord = hass.data[DOMAIN][entry.entry_id]["coordinator"]
     async_add_entities([
-        # Network / diagnostics
+        # Network / diagnostics (existing)
         DenonIpAddressSensor(coord, entry.entry_id),
         DenonMacEthernetSensor(coord, entry.entry_id),
         DenonMacWifiSensor(coord, entry.entry_id),
@@ -54,7 +24,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry, async_add_e
         DenonPhysicalConnectionSensor(coord, entry.entry_id),
         DenonRouterAccessSensor(coord, entry.entry_id),
         DenonInternetAccessSensor(coord, entry.entry_id),
-        # Now-playing quality
+        # Now-playing quality (new)
         DenonAudioFormatSensor(coord, entry.entry_id),
         DenonAudioCategorySensor(coord, entry.entry_id),
         DenonSampleRateSensor(coord, entry.entry_id),
@@ -68,7 +38,7 @@ class _DenonDiagSensorBase(DenonBaseEntity, SensorEntity):
     _attr_entity_category = EntityCategory.DIAGNOSTIC
 
 
-# ---------- Network / diagnostics -----------------------------------------
+# ---------- Network / diagnostics (unchanged) -----------------------------
 
 class DenonIpAddressSensor(_DenonDiagSensorBase):
     _attr_name = "IP Address"
@@ -162,7 +132,7 @@ class DenonInternetAccessSensor(_DenonDiagSensorBase):
         return DIAG_MAP.get(v, v)
 
 
-# ---------- Now-playing quality -------------------------------------------
+# ---------- Now-playing quality (new) -------------------------------------
 
 class _DenonNowPlayingSensorBase(DenonBaseEntity, SensorEntity):
     _attr_entity_category = EntityCategory.DIAGNOSTIC
@@ -181,7 +151,7 @@ class DenonAudioFormatSensor(_DenonNowPlayingSensorBase):
     def extra_state_attributes(self):
         return {
             "signal_code": self.coordinator.data.get("audio_signal_code"),
-            "signal_category_raw": self.coordinator.data.get("audio_category"),
+            "signal_category": self.coordinator.data.get("audio_category"),
             "sample_rate": self.coordinator.data.get("audio_sample_rate"),
         }
 
@@ -194,21 +164,7 @@ class DenonAudioCategorySensor(_DenonNowPlayingSensorBase):
         self._attr_unique_id = f"{entry_id}_audio_category"
     @property
     def native_value(self):
-        # Prefer SYSDA-derived category (authoritative & always in sync with
-        # Audio Format). Fall back to SSINFAISSIG-decoded category only if
-        # SYSDA is empty.
-        sysda = self.coordinator.data.get("audio_format_raw")
-        derived = category_from_sysda(sysda)
-        if derived:
-            return derived
         return self.coordinator.data.get("audio_category")
-    @property
-    def extra_state_attributes(self):
-        return {
-            "signal_code": self.coordinator.data.get("audio_signal_code"),
-            "category_from_ssinfaissig": self.coordinator.data.get("audio_category"),
-            "sysda_raw": self.coordinator.data.get("audio_format_raw"),
-        }
 
 
 class DenonSampleRateSensor(_DenonNowPlayingSensorBase):
@@ -230,8 +186,7 @@ class DenonVideoInputResSensor(_DenonNowPlayingSensorBase):
         self._attr_unique_id = f"{entry_id}_video_input_res"
     @property
     def native_value(self):
-        v = self.coordinator.data.get("video_input_res")
-        return v if v else "No signal"
+        return self.coordinator.data.get("video_input_res")
 
 
 class DenonVideoOutputResSensor(_DenonNowPlayingSensorBase):
@@ -242,8 +197,7 @@ class DenonVideoOutputResSensor(_DenonNowPlayingSensorBase):
         self._attr_unique_id = f"{entry_id}_video_output_res"
     @property
     def native_value(self):
-        v = self.coordinator.data.get("video_output_res")
-        return v if v else "No signal"
+        return self.coordinator.data.get("video_output_res")
     @property
     def extra_state_attributes(self):
         vi = self.coordinator.data.get("video_input_res")
@@ -258,7 +212,7 @@ class DenonVideoOutputResSensor(_DenonNowPlayingSensorBase):
 class DenonVideoScalingSensor(_DenonNowPlayingSensorBase):
     _attr_name = "Video Scaling"
     _attr_icon = "mdi:arrow-expand-vertical"
-
+    _attr_options = ["Passthrough", "Upscaling", "Downscaling", "Different"]
     def __init__(self, coord, entry_id):
         super().__init__(coord, entry_id)
         self._attr_unique_id = f"{entry_id}_video_scaling"
@@ -279,13 +233,8 @@ class DenonVideoScalingSensor(_DenonNowPlayingSensorBase):
     def native_value(self):
         vi = self.coordinator.data.get("video_input_res")
         vo = self.coordinator.data.get("video_output_res")
-        # ARC / eARC scenario: TV is source, AVR just outputs to TV.
-        if vi is None and vo is not None:
-            return "TV Audio (ARC)"
-        # No signal at all
-        if vi is None and vo is None:
-            return "No signal"
-        # Both present
+        if vi is None or vo is None:
+            return None
         if vi == vo:
             return "Passthrough"
         ri, ro = self._rank(vi), self._rank(vo)

@@ -1,4 +1,4 @@
-## Denon Advanced Audio -- Home Assistant Integration
+﻿## Denon Advanced Audio -- Home Assistant Integration
 
 Home Assistant custom integration exposing **advanced Denon AVR settings** that are not available in the built-in Denon integration -- Speaker Presets, MultEQ XT32, full Audyssey control, Zone Power, ECO / power-saving settings, Front Display brightness, Subwoofer Levels, Volume settings, Audio Delay, Restorer, Network Control, AirPlay, full network diagnostics, and (new in v0.3.0) **live "Now Playing" audio and video quality sensors**.
 
@@ -371,7 +371,6 @@ These icons have been prepared for submission to the https://github.com/home-ass
 
 ### Version history
 
-- **v0.3.1** -- Fix Audio Category so it always matches Audio Format (derived from SYSDA instead of the sometimes-stale SSINFAISSIG code). Video sensors now display "No signal" and "TV Audio (ARC)" instead of "Unknown" when no HDMI input is present.
 - **v0.3.0** -- Added **Now Playing Quality** sensors: Audio Format, Audio Category, Audio Sample Rate, Video Input Resolution, Video Output Resolution, and Video Scaling. Uses a brief one-shot telnet query per poll cycle to read information that the /ajax/ API does not expose. Backwards-compatible; all previous entities unchanged.
 - **v0.2.1** -- Reuses the shared HTTP client session (HTTP Keep-Alive) for faster response times and lower resource usage, and checks zone power before setting changes to prevent receiver API lockups.
 - **v0.1.5** -- Front Display brightness control (Bright/Dim/Dark/Off), Network Information sensors (IP, MAC, DHCP, Connection), Network Diagnostics sensors (Physical/Router/Internet), MAC address added to device registry
@@ -396,4 +395,3 @@ MIT -- see LICENSE
 
 - Inspired by the https://github.com/ol-iver/denonavr Python library
 - Reverse-engineered from the Denon AVR-X3700H web control interface
-
