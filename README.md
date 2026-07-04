@@ -1,7 +1,3 @@
-<p align="center">
-  ands/logo.png" alt="Denon Advanced Audio" width="600">
-</p>
-
 # Denon Advanced Audio -- Home Assistant Integration
 
 Home Assistant custom integration exposing **advanced Denon AVR settings** that are not available in the built-in Denon integration -- Speaker Presets, MultEQ XT32, full Audyssey control, Zone Power, ECO / power-saving settings, Front Display brightness, Subwoofer Levels, Volume settings, Audio Delay, Restorer, Network Control, AirPlay, and full network diagnostics.
