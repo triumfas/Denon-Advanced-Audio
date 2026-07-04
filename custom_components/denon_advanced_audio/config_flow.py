@@ -36,9 +36,13 @@ class DenonAdvancedAudioConfigFlow(
             base_url = user_input[CONF_BASE_URL].strip().rstrip("/")
             verify_ssl = user_input[CONF_VERIFY_SSL]
 
+            from homeassistant.helpers.aiohttp_client import async_get_clientsession
+
+            session = async_get_clientsession(self.hass, verify_ssl=verify_ssl)
             api = DenonAdvancedAudioApi(
                 base_url=base_url,
                 verify_ssl=verify_ssl,
+                session=session,
             )
 
             try:

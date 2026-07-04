@@ -15,9 +15,13 @@ PLATFORMS: list[str] = ["select", "switch", "number", "sensor"]
 
 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
+    from homeassistant.helpers.aiohttp_client import async_get_clientsession
+
+    session = async_get_clientsession(hass, verify_ssl=entry.data[CONF_VERIFY_SSL])
     api = DenonAdvancedAudioApi(
         base_url=entry.data[CONF_BASE_URL],
         verify_ssl=entry.data[CONF_VERIFY_SSL],
+        session=session,
     )
     coordinator = DenonAdvancedAudioCoordinator(hass=hass, api=api)
     await coordinator.async_config_entry_first_refresh()

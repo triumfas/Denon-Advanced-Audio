@@ -8,29 +8,44 @@ import aiohttp
 
 
 class DenonAdvancedAudioApi:
-    def __init__(self, base_url: str, verify_ssl: bool) -> None:
+    def __init__(self, base_url: str, verify_ssl: bool, session: aiohttp.ClientSession | None = None) -> None:
         self.base_url = base_url.rstrip("/")
         self.verify_ssl = verify_ssl
+        self.session = session
 
     def _ssl_context(self) -> bool:
         return True if self.verify_ssl else False
 
     async def _http_get_text(self, url: str) -> str:
         timeout = aiohttp.ClientTimeout(total=10)
-        async with aiohttp.ClientSession(timeout=timeout) as s:
-            async with s.get(url, ssl=self._ssl_context()) as r:
+        if self.session is not None:
+            async with self.session.get(url, ssl=self._ssl_context(), timeout=timeout) as r:
                 r.raise_for_status()
                 return await r.text()
+        else:
+            async with aiohttp.ClientSession(timeout=timeout) as s:
+                async with s.get(url, ssl=self._ssl_context()) as r:
+                    r.raise_for_status()
+                    return await r.text()
 
     async def _ajax_get(self, path: str, xml_type: int) -> str:
         url = f"{self.base_url}/ajax/{path}/get_config?type={xml_type}"
         return await self._http_get_text(url)
 
     async def _ajax_set(self, path: str, xml_type: int, xml_payload: str) -> None:
+        # Check if at least one zone is powered on
+        zp = await self.async_get_zone_power()
+        any_on = any(v == "1" for v in zp.values() if v is not None)
+        
+        if not any_on:
+            return
+            
         data = quote(xml_payload, safe="")
         url = f"{self.base_url}/ajax/{path}/set_config?type={xml_type}&data={data}"
         await self._http_get_text(url)
         await asyncio.sleep(0.3)
+
+
 
     def _extract(self, text: str, tag: str):
         m = re.search(rf"<{tag}[^>]*>([^<]*)</{tag}>", text)

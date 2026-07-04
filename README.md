@@ -1,4 +1,4 @@
-﻿﻿<p align="center">
+<p align="center">
   ands/logo.png" alt="Denon Advanced Audio" width="600">
 </p>
 
@@ -250,7 +250,8 @@ Benefits:
 - No TCP port 23 (telnet) required
 - Works cleanly alongside the built-in `denonavr` integration (no telnet conflict)
 - Works over reverse proxies with HTTPS
-- Faster and more reliable
+- Reuses the Home Assistant shared HTTP client session (HTTP Keep-Alive) to minimize connection handshakes and reduce CPU overhead on the receiver's single-threaded web server
+- Automatic safety checks: skips setting changes when all zones are off, preventing receiver API lock-ups
 
 ### Denon endpoints used
 
@@ -335,6 +336,7 @@ These icons have been prepared for submission to the [home-assistant/brands](htt
 
 ## Version history
 
+- **v0.2.0** -- Reuses the shared HTTP client session (HTTP Keep-Alive) for faster response times and lower resource usage, and checks zone power before setting changes to prevent receiver API lockups.
 - **v0.1.5** -- Front Display brightness control (Bright/Dim/Dark/Off), Network Information sensors (IP, MAC, DHCP, Connection), Network Diagnostics sensors (Physical/Router/Internet), MAC address added to device registry
 - **v0.1.4** -- Integration branding added (icon and logo)
 - **v0.1.3** -- Zone Power switches (Main + Zone 2/3/4 with custom names), ECO / General settings (ECO Mode, Power On Default, OSD, Auto Standby), icon fixes for subwoofer and AirPlay, integration branding added, removed redundant Speaker Preset State sensor
