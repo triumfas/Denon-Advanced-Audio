@@ -332,28 +332,60 @@ class DenonAdvancedAudioApi:
             "network_connection": None, "network_dhcp": None,
             "diag_physical": None, "diag_router": None, "diag_internet": None,
         }
-        try: data["speaker_preset"] = await self.async_get_speaker_preset()
-        except Exception: pass
-        try: data["restorer"] = await self.async_get_restorer()
-        except Exception: pass
-        try: data["network_control"] = await self.async_get_network_control()
-        except Exception: pass
-        try: data["airplay"] = await self.async_get_airplay()
-        except Exception: pass
-        try:
-            vc = await self.async_get_volume_config()
+
+        sem = asyncio.Semaphore(4)
+
+        async def run_safe(coro):
+            async with sem:
+                try:
+                    return await coro
+                except Exception:
+                    return None
+
+        tasks = {
+            "speaker_preset": run_safe(self.async_get_speaker_preset()),
+            "restorer": run_safe(self.async_get_restorer()),
+            "network_control": run_safe(self.async_get_network_control()),
+            "airplay": run_safe(self.async_get_airplay()),
+            "volume_config": run_safe(self.async_get_volume_config()),
+            "subwoofer_config": run_safe(self.async_get_subwoofer_config()),
+            "audyssey_config": run_safe(self.async_get_audyssey_config()),
+            "audio_delay": run_safe(self.async_get_audio_delay_config()),
+            "zone_power": run_safe(self.async_get_zone_power()),
+            "zone_names": run_safe(self.async_get_zone_names()),
+            "eco": run_safe(self.async_get_eco_config()),
+            "dimmer": run_safe(self.async_get_front_display()),
+            "network_info": run_safe(self.async_get_network_info()),
+            "diagnostics": run_safe(self.async_get_network_diagnostics()),
+        }
+
+        keys = list(tasks.keys())
+        results = await asyncio.gather(*[tasks[k] for k in keys])
+        res_dict = dict(zip(keys, results))
+
+        if res_dict["speaker_preset"] is not None:
+            data["speaker_preset"] = res_dict["speaker_preset"]
+        if res_dict["restorer"] is not None:
+            data["restorer"] = res_dict["restorer"]
+        if res_dict["network_control"] is not None:
+            data["network_control"] = res_dict["network_control"]
+        if res_dict["airplay"] is not None:
+            data["airplay"] = res_dict["airplay"]
+
+        vc = res_dict["volume_config"]
+        if vc:
             data["volume_scale"] = vc.get("scale")
             data["volume_limit"] = vc.get("limit")
             data["volume_power_on_level"] = vc.get("power_on_level")
             data["volume_mute_level"] = vc.get("mute_level")
-        except Exception: pass
-        try:
-            sc = await self.async_get_subwoofer_config()
+
+        sc = res_dict["subwoofer_config"]
+        if sc:
             data["subwoofer_level_1"] = sc.get("sub1")
             data["subwoofer_level_2"] = sc.get("sub2")
-        except Exception: pass
-        try:
-            au = await self.async_get_audyssey_config()
+
+        au = res_dict["audyssey_config"]
+        if au:
             data["multeq"] = au.get("multeq")
             data["lrbypass"] = au.get("lrbypass")
             data["dynamic_eq"] = au.get("dynamic_eq")
@@ -361,46 +393,47 @@ class DenonAdvancedAudioApi:
             data["dynamic_volume"] = au.get("dynamic_volume")
             data["lfc"] = au.get("lfc")
             data["containment_amount"] = au.get("containment_amount")
-            data["containment_amount_enabled"] = au.get("containment_amount_enabled")
-        except Exception: pass
-        try:
-            ad = await self.async_get_audio_delay_config()
+            data["containment_amount_enabled"] = au.get("containment_amount_enabled", False)
+
+        ad = res_dict["audio_delay"]
+        if ad:
             data["auto_lip_sync"] = ad.get("auto_lip_sync")
             data["audio_delay_adjust"] = ad.get("adjust")
-        except Exception: pass
-        try:
-            zp = await self.async_get_zone_power()
+
+        zp = res_dict["zone_power"]
+        if zp:
             data["zone_power_main"] = zp.get("main")
             data["zone_power_zone2"] = zp.get("zone2")
             data["zone_power_zone3"] = zp.get("zone3")
             data["zone_power_zone4"] = zp.get("zone4")
-        except Exception: pass
-        try:
-            data["zone_names"] = await self.async_get_zone_names()
-        except Exception:
-            data["zone_names"] = {"main": None, "zone2": None, "zone3": None, "zone4": None}
-        try:
-            eco = await self.async_get_eco_config()
+
+        zn = res_dict["zone_names"]
+        if zn:
+            data["zone_names"] = zn
+
+        eco = res_dict["eco"]
+        if eco:
             data["eco_mode"] = eco.get("mode")
             data["eco_power_on_default"] = eco.get("power_on_default")
             data["eco_on_screen_display"] = eco.get("on_screen_display")
             data["eco_auto_standby_main"] = eco.get("auto_standby_main")
             data["eco_auto_standby_zone2"] = eco.get("auto_standby_zone2")
-        except Exception: pass
-        try: data["front_display_dimmer"] = await self.async_get_front_display()
-        except Exception: pass
-        try:
-            ni = await self.async_get_network_info()
+
+        if res_dict["dimmer"] is not None:
+            data["front_display_dimmer"] = res_dict["dimmer"]
+
+        ni = res_dict["network_info"]
+        if ni:
             data["network_ip"] = ni.get("ip_address")
             data["network_mac_ethernet"] = ni.get("mac_ethernet")
             data["network_mac_wifi"] = ni.get("mac_wifi")
             data["network_connection"] = ni.get("connection")
             data["network_dhcp"] = ni.get("dhcp")
-        except Exception: pass
-        try:
-            nd = await self.async_get_network_diagnostics()
+
+        nd = res_dict["diagnostics"]
+        if nd:
             data["diag_physical"] = nd.get("physical")
             data["diag_router"] = nd.get("router")
             data["diag_internet"] = nd.get("internet")
-        except Exception: pass
+
         return data
