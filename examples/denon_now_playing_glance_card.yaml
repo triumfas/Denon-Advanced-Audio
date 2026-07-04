@@ -3,15 +3,15 @@ title: Denon — Now Playing
 columns: 3
 show_state: true
 entities:
-  - entity: sensor.svetaine_denon_audio_format
+  - entity: sensor.denon_audio_format
     name: Format
-  - entity: sensor.svetaine_denon_audio_category
+  - entity: sensor.denon_audio_category
     name: Category
-  - entity: sensor.svetaine_denon_audio_sample_rate
+  - entity: sensor.denon_audio_sample_rate
     name: Rate
-  - entity: sensor.svetaine_denon_video_input_resolution
+  - entity: sensor.denon_video_input_resolution
     name: Video In
-  - entity: sensor.svetaine_denon_video_output_resolution
+  - entity: sensor.denon_video_output_resolution
     name: Video Out
-  - entity: sensor.svetaine_denon_video_scaling
+  - entity: sensor.denon_video_scaling
     name: Scaling
