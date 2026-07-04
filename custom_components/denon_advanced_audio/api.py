@@ -61,6 +61,8 @@ class DenonAdvancedAudioApi:
 
     async def async_set_speaker_preset(self, preset: str):
         await self._ajax_set("speakers", 11, f"<SpeakerPreset>{preset}</SpeakerPreset>")
+        # Changing speaker preset takes time on the receiver side
+        await asyncio.sleep(3.0)
 
     async def async_get_restorer(self):
         text = await self._ajax_get("audio", 5)

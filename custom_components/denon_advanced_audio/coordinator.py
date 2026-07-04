@@ -23,6 +23,16 @@ class DenonAdvancedAudioCoordinator(DataUpdateCoordinator):
 
     async def _async_update_data(self) -> dict:
         try:
-            return await self.api.async_get_all()
+            new_data = await self.api.async_get_all()
+            if self.data:
+                for key, val in new_data.items():
+                    if val is None and self.data.get(key) is not None:
+                        new_data[key] = self.data[key]
+                    elif isinstance(val, dict) and isinstance(self.data.get(key), dict):
+                        # Merge nested dictionaries like zone_names
+                        for sub_key, sub_val in val.items():
+                            if sub_val is None and self.data[key].get(sub_key) is not None:
+                                val[sub_key] = self.data[key][sub_key]
+            return new_data
         except Exception as err:
             raise UpdateFailed(f"Failed to update: {err}") from err
