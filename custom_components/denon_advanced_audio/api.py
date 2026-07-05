@@ -340,6 +340,7 @@ class DenonAdvancedAudioApi:
             "audio_format_raw": None, "audio_signal_code": None,
             "audio_category": None, "audio_sample_rate": None,
             "video_input_res": None, "video_output_res": None,
+            "sound_mode": None, "input_signal_type": None,
         }
 
         sem = asyncio.Semaphore(4)
@@ -453,7 +454,10 @@ class DenonAdvancedAudioApi:
             data["audio_sample_rate"] = np.get("audio_sample_rate")
             data["video_input_res"] = np.get("video_input_res")
             data["video_output_res"] = np.get("video_output_res")
+            data["sound_mode"] = np.get("sound_mode")
+            data["input_signal_type"] = np.get("input_signal_type")
 
 
         return data
+
 

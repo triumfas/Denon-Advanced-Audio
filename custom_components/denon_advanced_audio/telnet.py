@@ -35,6 +35,19 @@ VIDEO_RES_NORMALIZED = {
     "8K30": "4320p30", "8K50": "4320p50", "8K60": "4320p60",
 }
 
+# Digital input selector (SD?) -> friendly name
+SD_MAP = {
+    "AUTO":     "Auto",
+    "HDMI":     "HDMI",
+    "DIGITAL":  "Digital (Coax/Opt)",
+    "ANALOG":   "Analog",
+    "EXT.IN":   "7.1 External",
+    "NO":       "No signal",
+    "ARC":      "ARC",
+    "EARC":     "eARC",
+    "7.1IN":    "7.1 Discrete",
+}
+
 
 def extract_host(base_url: str) -> str:
     """Extract just the hostname/IP from a base URL like https://192.168.7.1:10443."""
@@ -49,6 +62,14 @@ def _normalize_rate(raw: str) -> str | None:
     if raw.endswith("K"):
         return f"{raw[:-1]} kHz"
     return raw
+
+
+def _normalize_sd(raw: str) -> str | None:
+    """Normalize the SD? response payload (part after 'SD') to a friendly label."""
+    raw = raw.strip().upper()
+    if not raw:
+        return None
+    return SD_MAP.get(raw, raw.title())
 
 
 class DenonTelnetClient:
@@ -67,6 +88,8 @@ class DenonTelnetClient:
             "audio_sample_rate": None,
             "video_input_res": None,
             "video_output_res": None,
+            "sound_mode": None,
+            "input_signal_type": None,
         }
 
         try:
@@ -80,7 +103,8 @@ class DenonTelnetClient:
             return result
 
         try:
-            cmds = "SSINFAISSIG ?\rSSINFAISFSV ?\rSSINFSIGRES ?\rSYSDA ?\r"
+            cmds = ("MS?\rSSINFAISSIG ?\rSSINFAISFSV ?\r"
+                    "SSINFSIGRES ?\rSYSDA ?\rSD?\r")
             writer.write(cmds.encode("ascii"))
             await writer.drain()
 
@@ -136,5 +160,15 @@ class DenonTelnetClient:
                         result["video_output_res"] = norm
             elif line.startswith("SYSDA "):
                 result["audio_format_raw"] = line[len("SYSDA "):].strip()
+            elif (line.startswith("MS") and len(line) > 2
+                    and not line.startswith(("MSQUICK", "MSSMART"))):
+                result["sound_mode"] = line[2:].strip()
+            elif line.startswith("SD") and len(line) > 2:
+                # Guard against SS-family lines that also start with 'SS'
+                # (already handled above). SD? responses look like 'SDEARC',
+                # 'SDHDMI', 'SDAUTO' etc.
+                payload = line[2:].strip()
+                if payload and not payload.startswith(("INF", "?")):
+                    result["input_signal_type"] = _normalize_sd(payload)
 
         return result

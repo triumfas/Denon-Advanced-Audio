@@ -13,13 +13,7 @@ DIAG_MAP = {"1": "OK", "2": "Failed", "3": "OK"}
 
 
 def category_from_sysda(sysda: str | None) -> str | None:
-    """Derive a friendly audio category from the SYSDA decoded-format string.
-
-    SYSDA is the authoritative "what is decoding right now" value pushed by
-    the AVR. SSINFAISSIG (the raw bitstream category code) sometimes lags
-    behind stream changes on X-series firmware, so we derive the category
-    from SYSDA to keep Audio Category and Audio Format consistent.
-    """
+    """Derive a friendly audio category from the SYSDA decoded-format string."""
     if not sysda:
         return None
     s = sysda.upper().strip()
@@ -42,6 +36,55 @@ def category_from_sysda(sysda: str | None) -> str | None:
     return sysda.strip().title()
 
 
+def channels_from_sysda(sysda: str | None) -> str | None:
+    """Best-effort input channel layout inferred from the SYSDA string."""
+    if not sysda:
+        return None
+    s = sysda.upper()
+    if "ATMOS" in s or "DTS:X" in s or "TRUEHD" in s:
+        return "7.1.4"
+    if "DD+" in s or "DTS-HD" in s:
+        return "5.1"
+    if s.startswith("DD") or s == "DTS" or " DD" in s or " DTS" in s:
+        return "5.1"
+    if "MULTI" in s:
+        return "7.1"
+    if "PCM" in s:
+        return "2.0"
+    if "ANALOG" in s:
+        return "2.0"
+    return None
+
+
+def compute_output_channels(sound_mode: str | None,
+                            input_channels: str | None,
+                            has_sub: bool = True) -> str | None:
+    """Derive the active output channel layout from sound mode + input hint.
+
+    This is an *educated guess* because the AVR does not expose the active
+    channel layout directly on X3700H firmware. It reflects what most content
+    will produce; exotic upmix cases may differ.
+    """
+    if not sound_mode:
+        return input_channels
+    m = sound_mode.upper()
+    sub = ".1" if has_sub else ".0"
+
+    if m in ("STEREO", "PURE DIRECT"):
+        return f"2{sub}"
+    if "MCH STEREO" in m or "MULTI CH STEREO" in m:
+        return f"7{sub}"
+    if m == "DIRECT":
+        return input_channels or f"2{sub}"
+    if "ATMOS" in m or (input_channels and ".4" in input_channels):
+        return f"7{sub}.4"
+    if "DTS:X" in m or "NEURAL" in m:
+        return f"7{sub}.4"
+    if m in ("MOVIE", "MUSIC", "GAME", "AUTO"):
+        return input_channels or f"5{sub}"
+    return input_channels or f"2{sub}"
+
+
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry, async_add_entities: AddEntitiesCallback) -> None:
     coord = hass.data[DOMAIN][entry.entry_id]["coordinator"]
     async_add_entities([
@@ -61,6 +104,10 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry, async_add_e
         DenonVideoInputResSensor(coord, entry.entry_id),
         DenonVideoOutputResSensor(coord, entry.entry_id),
         DenonVideoScalingSensor(coord, entry.entry_id),
+        # v0.3.2: signal chain
+        DenonSoundModeSensor(coord, entry.entry_id),
+        DenonInputSignalTypeSensor(coord, entry.entry_id),
+        DenonOutputChannelsSensor(coord, entry.entry_id),
     ])
 
 
@@ -194,9 +241,6 @@ class DenonAudioCategorySensor(_DenonNowPlayingSensorBase):
         self._attr_unique_id = f"{entry_id}_audio_category"
     @property
     def native_value(self):
-        # Prefer SYSDA-derived category (authoritative & always in sync with
-        # Audio Format). Fall back to SSINFAISSIG-decoded category only if
-        # SYSDA is empty.
         sysda = self.coordinator.data.get("audio_format_raw")
         derived = category_from_sysda(sysda)
         if derived:
@@ -279,16 +323,64 @@ class DenonVideoScalingSensor(_DenonNowPlayingSensorBase):
     def native_value(self):
         vi = self.coordinator.data.get("video_input_res")
         vo = self.coordinator.data.get("video_output_res")
-        # ARC / eARC scenario: TV is source, AVR just outputs to TV.
         if vi is None and vo is not None:
             return "TV Audio (ARC)"
-        # No signal at all
         if vi is None and vo is None:
             return "No signal"
-        # Both present
         if vi == vo:
             return "Passthrough"
         ri, ro = self._rank(vi), self._rank(vo)
         if ro > ri: return "Upscaling"
         if ro < ri: return "Downscaling"
         return "Different"
+
+
+# ---------- v0.3.2: Signal chain ------------------------------------------
+
+class DenonSoundModeSensor(_DenonNowPlayingSensorBase):
+    """What the AVR is doing with the audio: STEREO, MOVIE, PURE DIRECT..."""
+    _attr_name = "Sound Mode"
+    _attr_icon = "mdi:surround-sound-5-1"
+    def __init__(self, coord, entry_id):
+        super().__init__(coord, entry_id)
+        self._attr_unique_id = f"{entry_id}_sound_mode"
+    @property
+    def native_value(self):
+        v = self.coordinator.data.get("sound_mode")
+        return v if v else None
+
+
+class DenonInputSignalTypeSensor(_DenonNowPlayingSensorBase):
+    """Physical/logical audio input path: eARC, HDMI, Analog, Optical..."""
+    _attr_name = "Input Signal Type"
+    _attr_icon = "mdi:cable-data"
+    def __init__(self, coord, entry_id):
+        super().__init__(coord, entry_id)
+        self._attr_unique_id = f"{entry_id}_input_signal_type"
+    @property
+    def native_value(self):
+        v = self.coordinator.data.get("input_signal_type")
+        return v if v else None
+
+
+class DenonOutputChannelsSensor(_DenonNowPlayingSensorBase):
+    """Best-effort active channel layout: 2.1, 5.1, 7.1.4."""
+    _attr_name = "Output Channels"
+    _attr_icon = "mdi:speaker-multiple"
+    def __init__(self, coord, entry_id):
+        super().__init__(coord, entry_id)
+        self._attr_unique_id = f"{entry_id}_output_channels"
+    @property
+    def native_value(self):
+        sysda = self.coordinator.data.get("audio_format_raw")
+        source_ch = channels_from_sysda(sysda)
+        mode = self.coordinator.data.get("sound_mode")
+        return compute_output_channels(mode, source_ch, has_sub=True)
+    @property
+    def extra_state_attributes(self):
+        sysda = self.coordinator.data.get("audio_format_raw")
+        return {
+            "source_channels": channels_from_sysda(sysda),
+            "sound_mode": self.coordinator.data.get("sound_mode"),
+            "is_derived": True,
+        }

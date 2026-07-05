@@ -371,6 +371,7 @@ These icons have been prepared for submission to the https://github.com/home-ass
 
 ### Version history
 
+- **v0.3.2** -- Added three more Now Playing sensors: **Sound Mode** (what the AVR is doing with audio -- STEREO, MOVIE, PURE DIRECT, DOLBY ATMOS, etc. via telnet `MS?`), **Input Signal Type** (physical audio path -- eARC / HDMI / Analog / Optical via telnet `SD?`), and **Output Channels** (derived channel layout like 2.1, 5.1, 7.1.4). Completes the input -> processing -> output signal chain picture.
 - **v0.3.1** -- Fix Audio Category so it always matches Audio Format (derived from SYSDA instead of the sometimes-stale SSINFAISSIG code). Video sensors now display "No signal" and "TV Audio (ARC)" instead of "Unknown" when no HDMI input is present.
 - **v0.3.0** -- Added **Now Playing Quality** sensors: Audio Format, Audio Category, Audio Sample Rate, Video Input Resolution, Video Output Resolution, and Video Scaling. Uses a brief one-shot telnet query per poll cycle to read information that the /ajax/ API does not expose. Backwards-compatible; all previous entities unchanged.
 - **v0.2.1** -- Reuses the shared HTTP client session (HTTP Keep-Alive) for faster response times and lower resource usage, and checks zone power before setting changes to prevent receiver API lockups.
@@ -396,4 +397,5 @@ MIT -- see LICENSE
 
 - Inspired by the https://github.com/ol-iver/denonavr Python library
 - Reverse-engineered from the Denon AVR-X3700H web control interface
+
 
