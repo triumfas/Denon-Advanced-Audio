@@ -12,8 +12,7 @@ DHCP_MAP = {"1": "On", "2": "Off"}
 DIAG_MAP = {"1": "OK", "2": "Failed", "3": "OK"}
 
 
-def category_from_sysda(sysda: str | None) -> str | None:
-    """Derive a friendly audio category from the SYSDA decoded-format string."""
+def category_from_sysda(sysda):
     if not sysda:
         return None
     s = sysda.upper().strip()
@@ -36,8 +35,7 @@ def category_from_sysda(sysda: str | None) -> str | None:
     return sysda.strip().title()
 
 
-def channels_from_sysda(sysda: str | None) -> str | None:
-    """Best-effort input channel layout inferred from the SYSDA string."""
+def channels_from_sysda(sysda):
     if not sysda:
         return None
     s = sysda.upper()
@@ -56,15 +54,7 @@ def channels_from_sysda(sysda: str | None) -> str | None:
     return None
 
 
-def compute_output_channels(sound_mode: str | None,
-                            input_channels: str | None,
-                            has_sub: bool = True) -> str | None:
-    """Derive the active output channel layout from sound mode + input hint.
-
-    This is an *educated guess* because the AVR does not expose the active
-    channel layout directly on X3700H firmware. It reflects what most content
-    will produce; exotic upmix cases may differ.
-    """
+def compute_output_channels(sound_mode, input_channels, has_sub=True):
     if not sound_mode:
         return input_channels
     m = sound_mode.upper()
@@ -88,7 +78,6 @@ def compute_output_channels(sound_mode: str | None,
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry, async_add_entities: AddEntitiesCallback) -> None:
     coord = hass.data[DOMAIN][entry.entry_id]["coordinator"]
     async_add_entities([
-        # Network / diagnostics
         DenonIpAddressSensor(coord, entry.entry_id),
         DenonMacEthernetSensor(coord, entry.entry_id),
         DenonMacWifiSensor(coord, entry.entry_id),
@@ -97,14 +86,12 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry, async_add_e
         DenonPhysicalConnectionSensor(coord, entry.entry_id),
         DenonRouterAccessSensor(coord, entry.entry_id),
         DenonInternetAccessSensor(coord, entry.entry_id),
-        # Now-playing quality
         DenonAudioFormatSensor(coord, entry.entry_id),
         DenonAudioCategorySensor(coord, entry.entry_id),
         DenonSampleRateSensor(coord, entry.entry_id),
         DenonVideoInputResSensor(coord, entry.entry_id),
         DenonVideoOutputResSensor(coord, entry.entry_id),
         DenonVideoScalingSensor(coord, entry.entry_id),
-        # v0.3.2: signal chain
         DenonSoundModeSensor(coord, entry.entry_id),
         DenonInputSignalTypeSensor(coord, entry.entry_id),
         DenonOutputChannelsSensor(coord, entry.entry_id),
@@ -114,8 +101,6 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry, async_add_e
 class _DenonDiagSensorBase(DenonBaseEntity, SensorEntity):
     _attr_entity_category = EntityCategory.DIAGNOSTIC
 
-
-# ---------- Network / diagnostics -----------------------------------------
 
 class DenonIpAddressSensor(_DenonDiagSensorBase):
     _attr_name = "IP Address"
@@ -208,8 +193,6 @@ class DenonInternetAccessSensor(_DenonDiagSensorBase):
         v = self.coordinator.data.get("diag_internet")
         return DIAG_MAP.get(v, v)
 
-
-# ---------- Now-playing quality -------------------------------------------
 
 class _DenonNowPlayingSensorBase(DenonBaseEntity, SensorEntity):
     _attr_entity_category = EntityCategory.DIAGNOSTIC
@@ -308,7 +291,7 @@ class DenonVideoScalingSensor(_DenonNowPlayingSensorBase):
         self._attr_unique_id = f"{entry_id}_video_scaling"
 
     @staticmethod
-    def _rank(res: str | None) -> int:
+    def _rank(res):
         if not res:
             return 0
         if "480" in res: return 1
@@ -335,10 +318,7 @@ class DenonVideoScalingSensor(_DenonNowPlayingSensorBase):
         return "Different"
 
 
-# ---------- v0.3.2: Signal chain ------------------------------------------
-
 class DenonSoundModeSensor(_DenonNowPlayingSensorBase):
-    """What the AVR is doing with the audio: STEREO, MOVIE, PURE DIRECT..."""
     _attr_name = "Sound Mode"
     _attr_icon = "mdi:surround-sound-5-1"
     def __init__(self, coord, entry_id):
@@ -351,7 +331,6 @@ class DenonSoundModeSensor(_DenonNowPlayingSensorBase):
 
 
 class DenonInputSignalTypeSensor(_DenonNowPlayingSensorBase):
-    """Physical/logical audio input path: eARC, HDMI, Analog, Optical..."""
     _attr_name = "Input Signal Type"
     _attr_icon = "mdi:cable-data"
     def __init__(self, coord, entry_id):
@@ -364,7 +343,6 @@ class DenonInputSignalTypeSensor(_DenonNowPlayingSensorBase):
 
 
 class DenonOutputChannelsSensor(_DenonNowPlayingSensorBase):
-    """Best-effort active channel layout: 2.1, 5.1, 7.1.4."""
     _attr_name = "Output Channels"
     _attr_icon = "mdi:speaker-multiple"
     def __init__(self, coord, entry_id):

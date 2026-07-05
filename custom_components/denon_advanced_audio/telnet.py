@@ -35,7 +35,6 @@ VIDEO_RES_NORMALIZED = {
     "8K30": "4320p30", "8K50": "4320p50", "8K60": "4320p60",
 }
 
-# Digital input selector (SD?) -> friendly name
 SD_MAP = {
     "AUTO":     "Auto",
     "HDMI":     "HDMI",
@@ -50,7 +49,6 @@ SD_MAP = {
 
 
 def extract_host(base_url: str) -> str:
-    """Extract just the hostname/IP from a base URL like https://192.168.7.1:10443."""
     parsed = urlparse(base_url if "://" in base_url else f"http://{base_url}")
     return parsed.hostname or base_url
 
@@ -65,7 +63,6 @@ def _normalize_rate(raw: str) -> str | None:
 
 
 def _normalize_sd(raw: str) -> str | None:
-    """Normalize the SD? response payload (part after 'SD') to a friendly label."""
     raw = raw.strip().upper()
     if not raw:
         return None
@@ -73,8 +70,6 @@ def _normalize_sd(raw: str) -> str | None:
 
 
 class DenonTelnetClient:
-    """One-shot telnet client. Connects, queries now-playing info, disconnects."""
-
     def __init__(self, host: str, port: int = 23, timeout: float = 2.5) -> None:
         self.host = host
         self.port = port
@@ -164,9 +159,6 @@ class DenonTelnetClient:
                     and not line.startswith(("MSQUICK", "MSSMART"))):
                 result["sound_mode"] = line[2:].strip()
             elif line.startswith("SD") and len(line) > 2:
-                # Guard against SS-family lines that also start with 'SS'
-                # (already handled above). SD? responses look like 'SDEARC',
-                # 'SDHDMI', 'SDAUTO' etc.
                 payload = line[2:].strip()
                 if payload and not payload.startswith(("INF", "?")):
                     result["input_signal_type"] = _normalize_sd(payload)
