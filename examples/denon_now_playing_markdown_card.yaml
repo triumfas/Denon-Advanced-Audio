@@ -2,12 +2,8 @@ type: markdown
 title: Denon — Now Playing
 content: >
   🎵 **{{ states('sensor.denon_audio_format') }}**
-  · {{ states('sensor.denon_audio_category') }}
   · {{ states('sensor.denon_audio_sample_rate') }}
-
-
-  🔊 **Mode:** {{ states('sensor.denon_sound_mode') }}
-  → **{{ states('sensor.denon_output_channels') }}**
+  · **{{ states('sensor.denon_sound_mode') }}** → {{ states('sensor.denon_output_channels') }}
   · {{ states('sensor.denon_input_signal_type') }}
 
 
