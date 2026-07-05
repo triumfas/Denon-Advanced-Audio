@@ -6,6 +6,11 @@ content: >
   · {{ states('sensor.denon_audio_sample_rate') }}
 
 
+  🔊 **Mode:** {{ states('sensor.denon_sound_mode') }}
+  → **{{ states('sensor.denon_output_channels') }}**
+  · {{ states('sensor.denon_input_signal_type') }}
+
+
   📺 **{{ states('sensor.denon_video_input_resolution') }}** →
   **{{ states('sensor.denon_video_output_resolution') }}**
   · {{ states('sensor.denon_video_scaling') }}
