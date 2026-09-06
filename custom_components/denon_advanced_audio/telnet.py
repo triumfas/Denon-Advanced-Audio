@@ -7,6 +7,8 @@ from urllib.parse import urlparse
 
 _LOGGER = logging.getLogger(__name__)
 
+NO_SIGNAL = "No signal"
+
 AUDIO_CATEGORY = {
     "01": "Analog",
     "02": "PCM",
@@ -26,7 +28,7 @@ AUDIO_CATEGORY = {
 }
 
 VIDEO_RES_NORMALIZED = {
-    "---": None,
+    "---": NO_SIGNAL,
     "480p60": "480p60", "576p50": "576p50",
     "720p50": "720p50", "720p60": "720p60",
     "1080p24": "1080p24", "1080p50": "1080p50", "1080p60": "1080p60",
@@ -53,12 +55,15 @@ def extract_host(base_url: str) -> str:
     return parsed.hostname or base_url
 
 
-def _normalize_rate(raw: str) -> str | None:
+def _normalize_rate(raw: str) -> str:
     raw = raw.strip().upper()
-    if raw in ("", "NONE", "---"):
-        return None
+    if raw in ("", "NON", "NONE", "---"):
+        return NO_SIGNAL
     if raw.endswith("K"):
         return f"{raw[:-1]} kHz"
+    if raw.isdigit():
+        # e.g. "441" -> 44.1 kHz, "882" -> 88.2 kHz, "1764" -> 176.4 kHz
+        return f"{raw[:-1]}.{raw[-1]} kHz"
     return raw
 
 
@@ -146,7 +151,7 @@ class DenonTelnetClient:
                     side = payload[0]
                     res = payload[1:].strip()
                     if res == "---" or not res:
-                        norm = None
+                        norm = NO_SIGNAL
                     else:
                         norm = VIDEO_RES_NORMALIZED.get(res, res)
                     if side == "I":

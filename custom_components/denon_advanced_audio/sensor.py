@@ -6,6 +6,7 @@ from homeassistant.helpers.entity import EntityCategory
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from .const import DOMAIN
 from .entity import DenonBaseEntity
+from .telnet import NO_SIGNAL
 
 CONNECTION_MAP = {"1": "Wi-Fi", "2": "Not connected", "3": "Wired (Ethernet)"}
 DHCP_MAP = {"1": "On", "2": "Off"}
@@ -258,7 +259,7 @@ class DenonVideoInputResSensor(_DenonNowPlayingSensorBase):
     @property
     def native_value(self):
         v = self.coordinator.data.get("video_input_res")
-        return v if v else "No signal"
+        return v if v else NO_SIGNAL
 
 
 class DenonVideoOutputResSensor(_DenonNowPlayingSensorBase):
@@ -270,7 +271,7 @@ class DenonVideoOutputResSensor(_DenonNowPlayingSensorBase):
     @property
     def native_value(self):
         v = self.coordinator.data.get("video_output_res")
-        return v if v else "No signal"
+        return v if v else NO_SIGNAL
     @property
     def extra_state_attributes(self):
         vi = self.coordinator.data.get("video_input_res")
@@ -278,7 +279,7 @@ class DenonVideoOutputResSensor(_DenonNowPlayingSensorBase):
         return {
             "input_res": vi,
             "output_res": vo,
-            "passthrough": (vi is not None and vi == vo),
+            "passthrough": (vi is not None and vi != NO_SIGNAL and vi == vo),
         }
 
 
@@ -306,10 +307,12 @@ class DenonVideoScalingSensor(_DenonNowPlayingSensorBase):
     def native_value(self):
         vi = self.coordinator.data.get("video_input_res")
         vo = self.coordinator.data.get("video_output_res")
-        if vi is None and vo is not None:
+        vi_active = vi not in (None, NO_SIGNAL)
+        vo_active = vo not in (None, NO_SIGNAL)
+        if not vi_active and vo_active:
             return "TV Audio (ARC)"
-        if vi is None and vo is None:
-            return "No signal"
+        if not vi_active and not vo_active:
+            return NO_SIGNAL
         if vi == vo:
             return "Passthrough"
         ri, ro = self._rank(vi), self._rank(vo)
@@ -343,22 +346,32 @@ class DenonInputSignalTypeSensor(_DenonNowPlayingSensorBase):
 
 
 class DenonOutputChannelsSensor(_DenonNowPlayingSensorBase):
-    _attr_name = "Output Channels"
+    _attr_name = "Output Channels (Estimated)"
     _attr_icon = "mdi:speaker-multiple"
+    _attr_entity_registry_enabled_default = False
     def __init__(self, coord, entry_id):
         super().__init__(coord, entry_id)
         self._attr_unique_id = f"{entry_id}_output_channels"
+
+    def _has_sub(self) -> bool:
+        return (
+            self.coordinator.data.get("subwoofer_level_1") is not None
+            or self.coordinator.data.get("subwoofer_level_2") is not None
+        )
+
     @property
     def native_value(self):
         sysda = self.coordinator.data.get("audio_format_raw")
         source_ch = channels_from_sysda(sysda)
         mode = self.coordinator.data.get("sound_mode")
-        return compute_output_channels(mode, source_ch, has_sub=True)
+        return compute_output_channels(mode, source_ch, has_sub=self._has_sub())
     @property
     def extra_state_attributes(self):
         sysda = self.coordinator.data.get("audio_format_raw")
         return {
             "source_channels": channels_from_sysda(sysda),
             "sound_mode": self.coordinator.data.get("sound_mode"),
+            "subwoofer_detected": self._has_sub(),
             "is_derived": True,
+            "note": "Estimated from format/mode heuristics; not reported by the receiver.",
         }

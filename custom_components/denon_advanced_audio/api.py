@@ -5,7 +5,7 @@ import re
 from urllib.parse import quote
 
 import aiohttp
-
+from homeassistant.exceptions import HomeAssistantError
 
 from .telnet import DenonTelnetClient, extract_host
 class DenonAdvancedAudioApi:
@@ -40,8 +40,12 @@ class DenonAdvancedAudioApi:
         any_on = any(v == "1" for v in zp.values() if v is not None)
         
         if not any_on:
-            return
-            
+            raise HomeAssistantError(
+                "Cannot change this setting because the receiver has no zone powered on. "
+                "Turn on the receiver (or a zone) and try again."
+            )
+
+
         data = quote(xml_payload, safe="")
         url = f"{self.base_url}/ajax/{path}/set_config?type={xml_type}&data={data}"
         await self._http_get_text(url)
