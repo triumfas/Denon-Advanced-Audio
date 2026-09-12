@@ -129,14 +129,21 @@ SOUND_MODE_GROUPS = {
     "Pure": ["Direct", "Pure Direct", "Auto"],
 }
 
-# Only these modes unambiguously identify a single category. A mode in _SOUND_MODE_COMMON is
-# offered under Movie, Music, and Game alike -- the receiver's MS? readback can't tell us which
-# of the three is actually active when the current mode is one of those.
+# "Auto" (like Movie/Music/Game) resolves to whichever concrete mode best fits current content
+# rather than reading back under its own name -- confirmed live: selecting Auto with PCM content
+# playing read back as "Dolby Audio - Dolby Surround", one of the modes _SOUND_MODE_COMMON already
+# lists as shared by Movie/Music/Game. So Pure is *not* fully disjoint from the other three after
+# all -- only Direct and Pure Direct reliably identify Pure on their own.
+_SOUND_MODE_RESOLVING = _SOUND_MODE_COMMON + ["Auto"]
+
+# Only these modes unambiguously identify a single category. A mode in _SOUND_MODE_RESOLVING is
+# reachable from more than one category (Auto's resolved mode is indistinguishable from the same
+# mode reached via Movie/Music/Game) -- the receiver's MS? readback can't tell us which is active.
 SOUND_MODE_EXCLUSIVE_TO_GROUP = {
     mode: group
     for group, modes in SOUND_MODE_GROUPS.items()
     for mode in modes
-    if mode not in _SOUND_MODE_COMMON
+    if mode not in _SOUND_MODE_RESOLVING
 }
 
 SOUND_MODE_QUICK_OPTIONS = ["Movie", "Music", "Game", "Pure"]
@@ -144,7 +151,7 @@ SOUND_MODE_QUICK_SET = {
     "Movie": "MOVIE",
     "Music": "MUSIC",
     "Game": "GAME",
-    "Pure": "PURE DIRECT",
+    "Pure": "PURE",
 }
 
 
@@ -154,10 +161,9 @@ def _resolved_sound_mode_family(coordinator) -> str | None:
     The receiver only reports the resolved concrete mode. When that mode uniquely identifies a
     category, trust it and refresh coordinator.last_sound_mode_family -- this self-heals even if
     the mode changed via the receiver's own remote/app, not just this integration. When it's one
-    of the modes shared across Movie/Music/Game, fall back to whichever category was last known
-    (from an earlier unambiguous reading, or from picking a Quick option directly), but only if
-    that remembered category is actually consistent with the current mode being shared -- Pure
-    never shares modes with the other three, so a remembered "Pure" here would be provably stale.
+    of the modes in _SOUND_MODE_RESOLVING (reachable from more than one category -- either shared
+    by Movie/Music/Game directly, or reached via Pure's Auto), fall back to whichever category
+    was last known, from an earlier unambiguous reading or from picking a Quick option directly.
     """
     raw = (coordinator.data.get("sound_mode") or "").upper()
     current = SOUND_MODE_FROM_RAW.get(raw)
@@ -165,7 +171,7 @@ def _resolved_sound_mode_family(coordinator) -> str | None:
     if group:
         coordinator.last_sound_mode_family = group
         return group
-    if current in _SOUND_MODE_COMMON and coordinator.last_sound_mode_family in ("Movie", "Music", "Game"):
+    if current in _SOUND_MODE_RESOLVING:
         return coordinator.last_sound_mode_family
     return None
 
@@ -578,19 +584,14 @@ class DenonSoundModeSelect(DenonBaseEntity, SelectEntity):
     def options(self):
         raw = (self.coordinator.data.get("sound_mode") or "").upper()
         current = SOUND_MODE_FROM_RAW.get(raw)
-        if current is None:
-            # Unrecognized raw mode: offer the full known set as a safe fallback.
-            options = list(SOUND_MODE_OPTIONS)
+        group = _resolved_sound_mode_family(self.coordinator) if current else None
+        if group:
+            options = list(SOUND_MODE_GROUPS[group])
         else:
-            group = _resolved_sound_mode_family(self.coordinator)
-            if group:
-                options = list(SOUND_MODE_GROUPS[group])
-            else:
-                # Shared mode with no remembered category either -- rules out Pure (whose three
-                # modes are never in this shared pool), but not which of the other three.
-                options = list(dict.fromkeys(
-                    SOUND_MODE_GROUPS["Movie"] + SOUND_MODE_GROUPS["Music"] + SOUND_MODE_GROUPS["Game"]
-                ))
+            # Unrecognized, or a resolving mode with no remembered category either. Pure's Auto
+            # can land on the same shared pool as Movie/Music/Game, so nothing can safely be
+            # ruled out -- offer the full known set.
+            options = list(SOUND_MODE_OPTIONS)
         if current and current not in options:
             options.append(current)
         return options
