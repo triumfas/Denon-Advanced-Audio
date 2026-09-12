@@ -66,6 +66,42 @@ FRONT_DISPLAY_FROM = {v: k for k, v in FRONT_DISPLAY_TO.items()}
 
 PON_OPTIONS = [f"-{i}dB" for i in range(80, 0, -1)] + ["0dB"] + [f"+{i}dB" for i in range(1, 19)]
 
+SOUND_MODE_QUICK_OPTIONS = ["Movie", "Music", "Game", "Pure Direct"]
+SOUND_MODE_QUICK_TO = {
+    "Movie": "MOVIE",
+    "Music": "MUSIC",
+    "Game": "GAME",
+    "Pure Direct": "PURE DIRECT",
+}
+SOUND_MODE_QUICK_FROM = {v: k for k, v in SOUND_MODE_QUICK_TO.items()}
+
+# Full set of surround/sound mode parameters from the Denon IP control protocol (MS command).
+# Availability of each mode on the receiver depends on the current input format; selecting an
+# unsupported mode is simply ignored by the AVR.
+SOUND_MODE_TO = {
+    "Movie": "MOVIE",
+    "Music": "MUSIC",
+    "Game": "GAME",
+    "Auto": "AUTO",
+    "Standard": "STANDARD",
+    "Direct": "DIRECT",
+    "Pure Direct": "PURE DIRECT",
+    "Stereo": "STEREO",
+    "Dolby Digital": "DOLBY DIGITAL",
+    "DTS Surround": "DTS SURROUND",
+    "Mch Stereo": "MCH STEREO",
+    "Virtual": "VIRTUAL",
+    "Matrix": "MATRIX",
+    "Rock Arena": "ROCK ARENA",
+    "Jazz Club": "JAZZ CLUB",
+    "Mono Movie": "MONO MOVIE",
+    "Video Game": "VIDEO GAME",
+    "Left": "LEFT",
+    "Right": "RIGHT",
+}
+SOUND_MODE_OPTIONS = list(SOUND_MODE_TO.keys())
+SOUND_MODE_FROM = {v: k for k, v in SOUND_MODE_TO.items()}
+
 
 def _db_option_to_value(option: str):
     if option == "Off":
@@ -113,6 +149,8 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry, async_add_e
         DenonAutoStandbyMainSelect(coord, entry.entry_id),
         DenonAutoStandbyZone2Select(coord, entry.entry_id),
         DenonFrontDisplayDimmerSelect(coord, entry.entry_id),
+        DenonSoundModeQuickSelect(coord, entry.entry_id),
+        DenonSoundModeSelect(coord, entry.entry_id),
     ])
 
 
@@ -433,4 +471,47 @@ class DenonFrontDisplayDimmerSelect(DenonBaseEntity, SelectEntity):
         v = FRONT_DISPLAY_TO.get(option)
         if v:
             await self.coordinator.api.async_set_front_display(v)
+            await self.coordinator.async_request_refresh()
+
+
+class DenonSoundModeQuickSelect(DenonBaseEntity, SelectEntity):
+    _attr_name = "Sound Mode (Quick)"
+    _attr_icon = "mdi:surround-sound"
+    _attr_options = SOUND_MODE_QUICK_OPTIONS
+
+    def __init__(self, coord, entry_id):
+        super().__init__(coord, entry_id)
+        self._attr_unique_id = f"{entry_id}_sound_mode_quick"
+
+    @property
+    def current_option(self):
+        raw = self.coordinator.data.get("sound_mode")
+        return SOUND_MODE_QUICK_FROM.get((raw or "").upper())
+
+    async def async_select_option(self, option):
+        v = SOUND_MODE_QUICK_TO.get(option)
+        if v:
+            await self.coordinator.api.async_set_sound_mode(v)
+            await self.coordinator.async_request_refresh()
+
+
+class DenonSoundModeSelect(DenonBaseEntity, SelectEntity):
+    _attr_name = "Sound Mode"
+    _attr_icon = "mdi:surround-sound-5-1"
+    _attr_options = SOUND_MODE_OPTIONS
+    _attr_entity_registry_enabled_default = False
+
+    def __init__(self, coord, entry_id):
+        super().__init__(coord, entry_id)
+        self._attr_unique_id = f"{entry_id}_sound_mode_full"
+
+    @property
+    def current_option(self):
+        raw = self.coordinator.data.get("sound_mode")
+        return SOUND_MODE_FROM.get((raw or "").upper())
+
+    async def async_select_option(self, option):
+        v = SOUND_MODE_TO.get(option)
+        if v:
+            await self.coordinator.api.async_set_sound_mode(v)
             await self.coordinator.async_request_refresh()

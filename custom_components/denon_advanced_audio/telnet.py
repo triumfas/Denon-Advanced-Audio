@@ -169,3 +169,18 @@ class DenonTelnetClient:
                     result["input_signal_type"] = _normalize_sd(payload)
 
         return result
+
+    async def async_send_command(self, command: str) -> None:
+        reader, writer = await asyncio.wait_for(
+            asyncio.open_connection(self.host, self.port),
+            timeout=self.timeout,
+        )
+        try:
+            writer.write(f"{command}\r".encode("ascii"))
+            await writer.drain()
+        finally:
+            try:
+                writer.close()
+                await asyncio.wait_for(writer.wait_closed(), timeout=1.0)
+            except Exception:
+                pass

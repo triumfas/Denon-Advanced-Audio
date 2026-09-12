@@ -320,6 +320,19 @@ class DenonAdvancedAudioApi:
     async def async_get_now_playing(self) -> dict:
         return await self._telnet.async_query_now_playing()
 
+    async def async_set_sound_mode(self, mode: str) -> None:
+        zp = await self.async_get_zone_power()
+        if not any(v == "1" for v in zp.values() if v is not None):
+            raise HomeAssistantError(
+                "Cannot change sound mode because the receiver has no zone powered on. "
+                "Turn on the receiver (or a zone) and try again."
+            )
+        try:
+            await self._telnet.async_send_command(f"MS{mode}")
+        except (asyncio.TimeoutError, OSError) as err:
+            raise HomeAssistantError(f"Failed to set sound mode: {err}") from err
+        await asyncio.sleep(0.3)
+
     async def async_get_all(self) -> dict:
         data = {
             "speaker_preset": None, "restorer": None,
