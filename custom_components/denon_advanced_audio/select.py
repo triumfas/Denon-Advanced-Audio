@@ -146,12 +146,15 @@ SOUND_MODE_EXCLUSIVE_TO_GROUP = {
     if mode not in _SOUND_MODE_RESOLVING
 }
 
+# Movie/Music/Game have a working "jump to category, keep last submode" telnet command (bare
+# MSMOVIE/MSMUSIC/MSGAME). Pure does not -- probing found MSPURE is simply a no-op rather than a
+# real category-select, so there's no single command to put here for it. The Quick select handles
+# "Pure" as a special case instead, using coordinator.last_pure_submode.
 SOUND_MODE_QUICK_OPTIONS = ["Movie", "Music", "Game", "Pure"]
 SOUND_MODE_QUICK_SET = {
     "Movie": "MOVIE",
     "Music": "MUSIC",
     "Game": "GAME",
-    "Pure": "PURE",
 }
 
 
@@ -164,12 +167,18 @@ def _resolved_sound_mode_family(coordinator) -> str | None:
     of the modes in _SOUND_MODE_RESOLVING (reachable from more than one category -- either shared
     by Movie/Music/Game directly, or reached via Pure's Auto), fall back to whichever category
     was last known, from an earlier unambiguous reading or from picking a Quick option directly.
+
+    Also self-heals coordinator.last_pure_submode whenever the mode is confidently "Direct" or
+    "Pure Direct" (both reliably read back under their own name). "Auto" never does -- it's a
+    resolving mode itself -- so it can only be remembered by picking it explicitly.
     """
     raw = (coordinator.data.get("sound_mode") or "").upper()
     current = SOUND_MODE_FROM_RAW.get(raw)
     group = SOUND_MODE_EXCLUSIVE_TO_GROUP.get(current) if current else None
     if group:
         coordinator.last_sound_mode_family = group
+        if group == "Pure":
+            coordinator.last_pure_submode = current
         return group
     if current in _SOUND_MODE_RESOLVING:
         return coordinator.last_sound_mode_family
@@ -561,7 +570,13 @@ class DenonSoundModeQuickSelect(DenonBaseEntity, SelectEntity):
         return _resolved_sound_mode_family(self.coordinator)
 
     async def async_select_option(self, option):
-        v = SOUND_MODE_QUICK_SET.get(option)
+        if option == "Pure":
+            # No working "jump to Pure, keep last submode" command exists (MSPURE is a no-op) --
+            # send whichever submode was last remembered instead, defaulting to Pure Direct.
+            submode = self.coordinator.last_pure_submode or "Pure Direct"
+            v = SOUND_MODE_SET.get(submode)
+        else:
+            v = SOUND_MODE_QUICK_SET.get(option)
         if v:
             await self.coordinator.api.async_set_sound_mode(v)
             # Remember the picked category immediately -- if it resolves to a mode shared with
@@ -613,4 +628,14 @@ class DenonSoundModeSelect(DenonBaseEntity, SelectEntity):
         v = SOUND_MODE_SET.get(option)
         if v:
             await self.coordinator.api.async_set_sound_mode(v)
+            if option in SOUND_MODE_GROUPS["Pure"]:
+                # "Auto" never reads back under its own name (it's a resolving mode itself), so
+                # picking it explicitly is the only way the Quick select's Pure button can ever
+                # learn about it -- and the only way to know "Pure" is active right away too.
+                self.coordinator.last_pure_submode = option
+                self.coordinator.last_sound_mode_family = "Pure"
+            else:
+                group = SOUND_MODE_EXCLUSIVE_TO_GROUP.get(option)
+                if group:
+                    self.coordinator.last_sound_mode_family = group
             await self.coordinator.async_request_refresh()

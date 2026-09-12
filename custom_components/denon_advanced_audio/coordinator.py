@@ -21,6 +21,12 @@ class DenonAdvancedAudioCoordinator(DataUpdateCoordinator):
         # for modes shared across categories -- see select.py's SOUND_MODE_* comments. Not
         # persisted across restarts, and self-heals whenever an unambiguous mode is observed.
         self.last_sound_mode_family: str | None = None
+        # Best-effort memory of which Pure submode (Direct/Pure Direct/Auto) was last active.
+        # Unlike Movie/Music/Game, Pure has no working "jump to category, keep last submode"
+        # telnet command -- probing found MSPURE is simply a no-op, not a real category-select
+        # -- so the Sound Mode (Quick) Pure button sends whichever submode is remembered here
+        # instead. Not persisted across restarts.
+        self.last_pure_submode: str | None = None
         super().__init__(
             hass, _LOGGER, name=DOMAIN,
             update_interval=timedelta(seconds=DEFAULT_SCAN_INTERVAL),
