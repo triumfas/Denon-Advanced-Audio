@@ -43,7 +43,7 @@ Live information about the currently playing content, exposed as diagnostic sens
 
 These values change automatically as the source device (Blu-ray, streaming box, console) switches formats. Useful for verifying that Atmos, DTS:X, or 4K passthrough is actually reaching the AVR.
 
-#### Sound Mode *(added in v0.3.5, rebuilt against real hardware in v0.3.7)*
+#### Sound Mode *(added in v0.3.5, rebuilt against real hardware in v0.3.7, quick-mode memory added in v0.3.8)*
 
 Both entities are set via telnet (`MS<mode>`). Their mode list and grouping were verified by probing an actual AVR-X3700H and cross-checking against its own "Sound Mode" UI, not guessed from protocol docs -- the receiver's UI groups modes into four categories, three of which (Movie/Music/Game) share a common pool of modes plus 1-3 exclusive to each; Pure is a separate, disjoint set of its own three.
 
