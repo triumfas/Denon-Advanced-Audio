@@ -8,7 +8,6 @@ from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
 from .const import DOMAIN
 from .entity import DenonBaseEntity
-from .sensor import category_from_sysda
 
 SPEAKER_PRESET_OPTIONS = ["Preset 1", "Preset 2"]
 
@@ -67,76 +66,86 @@ FRONT_DISPLAY_FROM = {v: k for k, v in FRONT_DISPLAY_TO.items()}
 
 PON_OPTIONS = [f"-{i}dB" for i in range(80, 0, -1)] + ["0dB"] + [f"+{i}dB" for i in range(1, 19)]
 
-SOUND_MODE_QUICK_OPTIONS = ["Movie", "Music", "Game", "Pure Direct"]
-SOUND_MODE_QUICK_TO = {
-    "Movie": "MOVIE",
-    "Music": "MUSIC",
-    "Game": "GAME",
-    "Pure Direct": "PURE DIRECT",
-}
-SOUND_MODE_QUICK_FROM = {v: k for k, v in SOUND_MODE_QUICK_TO.items()}
+# Ground-truth verified by probing telnet MS<mode>/MS? directly against a Denon AVR-X3700H and
+# cross-checking against the receiver's own web UI "Sound Mode" menu. Two things that aren't
+# obvious from the (legacy) protocol docs:
+#
+# 1. Movie/Music/Game/Pure are *categories*, not modes. The receiver's UI opens a submenu of
+#    concrete modes under each one; sending the bare category command (e.g. "MSMOVIE") just
+#    jumps to whatever concrete mode was last selected within that category -- it does not set
+#    a distinct "Movie" state, and the MS? readback afterwards reports that concrete mode, not
+#    the category. Movie/Music/Game share a common pool of modes plus 1-3 exclusive to each;
+#    Pure is a fully separate, disjoint pool of its own three modes.
+# 2. The SET command string doesn't always match the GET/MS? readback string. "STANDARD" sets
+#    what the UI calls "Dolby Audio - Dolby Surround" (readback "DOLBY AUDIO-DSUR"); "DTS
+#    SURROUND" sets "DTS Neural:X" (readback "NEURAL:X"). Neither is gated by the current
+#    source's format -- both are upmixers that work on any source, confirmed by probing with no
+#    signal present at all.
+#
+# "DTS Virtual:X" (readback "VIRTUAL:X") is shown by the receiver's UI in every Movie/Music/Game
+# submenu, but no working SET command for it was found by probing -- it's recognized so it
+# displays correctly as the current mode, but intentionally left out of SOUND_MODE_SET/GROUPS so
+# it's never offered as a choice that would silently do nothing if picked.
 
-# Full set of surround/sound mode parameters from the Denon IP control protocol (MS command).
-# Availability of each mode on the receiver depends on the current input format; selecting an
-# unsupported mode is simply ignored by the AVR.
-SOUND_MODE_TO = {
-    "Movie": "MOVIE",
-    "Music": "MUSIC",
-    "Game": "GAME",
-    "Auto": "AUTO",
-    "Standard": "STANDARD",
+SOUND_MODE_SET = {
+    "Stereo": "STEREO",
     "Direct": "DIRECT",
     "Pure Direct": "PURE DIRECT",
-    "Stereo": "STEREO",
-    "Dolby Digital": "DOLBY DIGITAL",
-    "DTS Surround": "DTS SURROUND",
-    "Mch Stereo": "MCH STEREO",
+    "Auto": "AUTO",
+    "Dolby Surround": "STANDARD",
+    "DTS Neural:X": "DTS SURROUND",
+    "Multi Ch Stereo": "MCH STEREO",
     "Virtual": "VIRTUAL",
-    "Matrix": "MATRIX",
+    "Mono Movie": "MONO MOVIE",
     "Rock Arena": "ROCK ARENA",
     "Jazz Club": "JAZZ CLUB",
-    "Mono Movie": "MONO MOVIE",
+    "Matrix": "MATRIX",
     "Video Game": "VIDEO GAME",
-    "Left": "LEFT",
-    "Right": "RIGHT",
 }
-SOUND_MODE_OPTIONS = list(SOUND_MODE_TO.keys())
-SOUND_MODE_FROM = {v: k for k, v in SOUND_MODE_TO.items()}
+SOUND_MODE_OPTIONS = list(SOUND_MODE_SET.keys())
 
-# Groups the full mode list under the quick-select family it belongs to, so the full Sound Mode
-# select can narrow itself to "modes related to the one currently active". Approximate grouping
-# based on Denon's classic Movie/Music/Game/Direct listening-mode families -- since the AVR
-# ignores modes it doesn't support anyway, a mode landing in the "wrong" group is harmless.
+SOUND_MODE_FROM_RAW = {
+    "STEREO": "Stereo",
+    "DIRECT": "Direct",
+    "PURE DIRECT": "Pure Direct",
+    "AUTO": "Auto",
+    "DOLBY AUDIO-DSUR": "Dolby Surround",
+    "NEURAL:X": "DTS Neural:X",
+    "MCH STEREO": "Multi Ch Stereo",
+    "VIRTUAL": "Virtual",
+    "VIRTUAL:X": "DTS Virtual:X",
+    "MONO MOVIE": "Mono Movie",
+    "ROCK ARENA": "Rock Arena",
+    "JAZZ CLUB": "Jazz Club",
+    "MATRIX": "Matrix",
+    "VIDEO GAME": "Video Game",
+}
+
+_SOUND_MODE_COMMON = ["Stereo", "Dolby Surround", "DTS Neural:X", "Multi Ch Stereo", "Virtual"]
 SOUND_MODE_GROUPS = {
-    "Movie": ["Movie", "Standard", "Dolby Digital", "DTS Surround", "Mono Movie", "Virtual", "Matrix"],
-    "Music": ["Music", "Rock Arena", "Jazz Club", "Mch Stereo"],
-    "Game": ["Game", "Video Game"],
-    "Pure Direct": ["Pure Direct", "Direct", "Auto", "Stereo", "Left", "Right"],
-}
-SOUND_MODE_RAW_TO_GROUP = {
-    SOUND_MODE_TO[name]: group
-    for group, names in SOUND_MODE_GROUPS.items()
-    for name in names
+    "Movie": _SOUND_MODE_COMMON + ["Mono Movie"],
+    "Music": _SOUND_MODE_COMMON + ["Rock Arena", "Jazz Club", "Matrix"],
+    "Game": _SOUND_MODE_COMMON + ["Video Game"],
+    "Pure": ["Direct", "Pure Direct", "Auto"],
 }
 
-# Modes that only mean something when the source actually carries that bitstream --
-# selecting "Dolby Digital" decode on a plain PCM/Analog source has nothing to decode.
-SOUND_MODE_REQUIRES_SOURCE_FAMILY = {
-    "Dolby Digital": "DOLBY",
-    "DTS Surround": "DTS",
+# Only these modes unambiguously identify a single category. A mode in _SOUND_MODE_COMMON is
+# offered under Movie, Music, and Game alike -- the receiver's MS? readback can't tell us which
+# of the three is actually active when the current mode is one of those.
+SOUND_MODE_EXCLUSIVE_TO_GROUP = {
+    mode: group
+    for group, modes in SOUND_MODE_GROUPS.items()
+    for mode in modes
+    if mode not in _SOUND_MODE_COMMON
 }
 
-
-def _source_bitstream_family(data: dict) -> str | None:
-    # Prefer the format derived from SYSDA (same as the Audio Category sensor) -- the raw
-    # SSINFAISSIG-based category can be stale, per the v0.3.1 fix.
-    cat = category_from_sysda(data.get("audio_format_raw")) or data.get("audio_category") or ""
-    cat = cat.upper()
-    if "DOLBY" in cat:
-        return "DOLBY"
-    if "DTS" in cat:
-        return "DTS"
-    return None
+SOUND_MODE_QUICK_OPTIONS = ["Movie", "Music", "Game", "Pure"]
+SOUND_MODE_QUICK_SET = {
+    "Movie": "MOVIE",
+    "Music": "MUSIC",
+    "Game": "GAME",
+    "Pure": "PURE DIRECT",
+}
 
 
 def _db_option_to_value(option: str):
@@ -521,11 +530,16 @@ class DenonSoundModeQuickSelect(DenonBaseEntity, SelectEntity):
 
     @property
     def current_option(self):
-        raw = self.coordinator.data.get("sound_mode")
-        return SOUND_MODE_QUICK_FROM.get((raw or "").upper())
+        # Only meaningful when the active mode uniquely identifies its category (e.g. "Mono
+        # Movie" -> Movie). A mode shared by Movie/Music/Game (Stereo, Dolby Surround, DTS
+        # Neural:X, Multi Ch Stereo, Virtual) doesn't tell us which category is active -- the
+        # receiver simply doesn't expose that, so this honestly returns unknown rather than guess.
+        raw = (self.coordinator.data.get("sound_mode") or "").upper()
+        current = SOUND_MODE_FROM_RAW.get(raw)
+        return SOUND_MODE_EXCLUSIVE_TO_GROUP.get(current) if current else None
 
     async def async_select_option(self, option):
-        v = SOUND_MODE_QUICK_TO.get(option)
+        v = SOUND_MODE_QUICK_SET.get(option)
         if v:
             await self.coordinator.api.async_set_sound_mode(v)
             await self.coordinator.async_request_refresh()
@@ -543,33 +557,40 @@ class DenonSoundModeSelect(DenonBaseEntity, SelectEntity):
     @property
     def options(self):
         raw = (self.coordinator.data.get("sound_mode") or "").upper()
-        group = SOUND_MODE_RAW_TO_GROUP.get(raw)
-        options = list(SOUND_MODE_GROUPS.get(group, SOUND_MODE_OPTIONS))
-        current = SOUND_MODE_FROM.get(raw)
-        family = _source_bitstream_family(self.coordinator.data)
-        for name, needed_family in SOUND_MODE_REQUIRES_SOURCE_FAMILY.items():
-            if name in options and name != current and family != needed_family:
-                options.remove(name)
+        current = SOUND_MODE_FROM_RAW.get(raw)
+        if current is None:
+            # Unrecognized raw mode: offer the full known set as a safe fallback.
+            options = list(SOUND_MODE_OPTIONS)
+        else:
+            group = SOUND_MODE_EXCLUSIVE_TO_GROUP.get(current)
+            if group:
+                options = list(SOUND_MODE_GROUPS[group])
+            else:
+                # One of the modes shared by Movie/Music/Game -- that rules out Pure (whose
+                # three modes are never in this shared pool), but not which of the other three.
+                options = list(dict.fromkeys(
+                    SOUND_MODE_GROUPS["Movie"] + SOUND_MODE_GROUPS["Music"] + SOUND_MODE_GROUPS["Game"]
+                ))
+        if current and current not in options:
+            options.append(current)
         return options
 
     @property
     def current_option(self):
         raw = self.coordinator.data.get("sound_mode")
-        return SOUND_MODE_FROM.get((raw or "").upper())
+        return SOUND_MODE_FROM_RAW.get((raw or "").upper())
 
     @property
     def extra_state_attributes(self):
         raw = (self.coordinator.data.get("sound_mode") or "").upper()
+        current = SOUND_MODE_FROM_RAW.get(raw)
         return {
             "raw_sound_mode": raw or None,
-            "mode_group": SOUND_MODE_RAW_TO_GROUP.get(raw),
-            "source_audio_category": category_from_sysda(self.coordinator.data.get("audio_format_raw"))
-                or self.coordinator.data.get("audio_category"),
-            "source_bitstream_family": _source_bitstream_family(self.coordinator.data),
+            "mode_group": SOUND_MODE_EXCLUSIVE_TO_GROUP.get(current) if current else None,
         }
 
     async def async_select_option(self, option):
-        v = SOUND_MODE_TO.get(option)
+        v = SOUND_MODE_SET.get(option)
         if v:
             await self.coordinator.api.async_set_sound_mode(v)
             await self.coordinator.async_request_refresh()
