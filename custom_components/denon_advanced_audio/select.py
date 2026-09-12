@@ -148,6 +148,28 @@ SOUND_MODE_QUICK_SET = {
 }
 
 
+def _resolved_sound_mode_family(coordinator) -> str | None:
+    """Best-effort "which quick category is active", with self-healing memory.
+
+    The receiver only reports the resolved concrete mode. When that mode uniquely identifies a
+    category, trust it and refresh coordinator.last_sound_mode_family -- this self-heals even if
+    the mode changed via the receiver's own remote/app, not just this integration. When it's one
+    of the modes shared across Movie/Music/Game, fall back to whichever category was last known
+    (from an earlier unambiguous reading, or from picking a Quick option directly), but only if
+    that remembered category is actually consistent with the current mode being shared -- Pure
+    never shares modes with the other three, so a remembered "Pure" here would be provably stale.
+    """
+    raw = (coordinator.data.get("sound_mode") or "").upper()
+    current = SOUND_MODE_FROM_RAW.get(raw)
+    group = SOUND_MODE_EXCLUSIVE_TO_GROUP.get(current) if current else None
+    if group:
+        coordinator.last_sound_mode_family = group
+        return group
+    if current in _SOUND_MODE_COMMON and coordinator.last_sound_mode_family in ("Movie", "Music", "Game"):
+        return coordinator.last_sound_mode_family
+    return None
+
+
 def _db_option_to_value(option: str):
     if option == "Off":
         return "0"
@@ -530,18 +552,16 @@ class DenonSoundModeQuickSelect(DenonBaseEntity, SelectEntity):
 
     @property
     def current_option(self):
-        # Only meaningful when the active mode uniquely identifies its category (e.g. "Mono
-        # Movie" -> Movie). A mode shared by Movie/Music/Game (Stereo, Dolby Surround, DTS
-        # Neural:X, Multi Ch Stereo, Virtual) doesn't tell us which category is active -- the
-        # receiver simply doesn't expose that, so this honestly returns unknown rather than guess.
-        raw = (self.coordinator.data.get("sound_mode") or "").upper()
-        current = SOUND_MODE_FROM_RAW.get(raw)
-        return SOUND_MODE_EXCLUSIVE_TO_GROUP.get(current) if current else None
+        return _resolved_sound_mode_family(self.coordinator)
 
     async def async_select_option(self, option):
         v = SOUND_MODE_QUICK_SET.get(option)
         if v:
             await self.coordinator.api.async_set_sound_mode(v)
+            # Remember the picked category immediately -- if it resolves to a mode shared with
+            # other categories (e.g. Music landing on Stereo), this is the only way to still
+            # show "Music" instead of unknown afterwards.
+            self.coordinator.last_sound_mode_family = option
             await self.coordinator.async_request_refresh()
 
 
@@ -562,12 +582,12 @@ class DenonSoundModeSelect(DenonBaseEntity, SelectEntity):
             # Unrecognized raw mode: offer the full known set as a safe fallback.
             options = list(SOUND_MODE_OPTIONS)
         else:
-            group = SOUND_MODE_EXCLUSIVE_TO_GROUP.get(current)
+            group = _resolved_sound_mode_family(self.coordinator)
             if group:
                 options = list(SOUND_MODE_GROUPS[group])
             else:
-                # One of the modes shared by Movie/Music/Game -- that rules out Pure (whose
-                # three modes are never in this shared pool), but not which of the other three.
+                # Shared mode with no remembered category either -- rules out Pure (whose three
+                # modes are never in this shared pool), but not which of the other three.
                 options = list(dict.fromkeys(
                     SOUND_MODE_GROUPS["Movie"] + SOUND_MODE_GROUPS["Music"] + SOUND_MODE_GROUPS["Game"]
                 ))
@@ -583,10 +603,9 @@ class DenonSoundModeSelect(DenonBaseEntity, SelectEntity):
     @property
     def extra_state_attributes(self):
         raw = (self.coordinator.data.get("sound_mode") or "").upper()
-        current = SOUND_MODE_FROM_RAW.get(raw)
         return {
             "raw_sound_mode": raw or None,
-            "mode_group": SOUND_MODE_EXCLUSIVE_TO_GROUP.get(current) if current else None,
+            "mode_group": _resolved_sound_mode_family(self.coordinator),
         }
 
     async def async_select_option(self, option):

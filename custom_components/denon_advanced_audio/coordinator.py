@@ -16,6 +16,11 @@ class DenonAdvancedAudioCoordinator(DataUpdateCoordinator):
     def __init__(self, hass: HomeAssistant, api: DenonAdvancedAudioApi) -> None:
         self.api = api
         self.device_info_data: dict = {"model": None, "name": None, "mac": None, "sw_version": None}
+        # Best-effort memory of which Sound Mode quick-select category (Movie/Music/Game/Pure)
+        # is active. The receiver only reports the resolved concrete mode, which is ambiguous
+        # for modes shared across categories -- see select.py's SOUND_MODE_* comments. Not
+        # persisted across restarts, and self-heals whenever an unambiguous mode is observed.
+        self.last_sound_mode_family: str | None = None
         super().__init__(
             hass, _LOGGER, name=DOMAIN,
             update_interval=timedelta(seconds=DEFAULT_SCAN_INTERVAL),
