@@ -8,6 +8,7 @@ from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
 from .const import DOMAIN
 from .entity import DenonBaseEntity
+from .sensor import category_from_sysda
 
 SPEAKER_PRESET_OPTIONS = ["Preset 1", "Preset 2"]
 
@@ -101,6 +102,41 @@ SOUND_MODE_TO = {
 }
 SOUND_MODE_OPTIONS = list(SOUND_MODE_TO.keys())
 SOUND_MODE_FROM = {v: k for k, v in SOUND_MODE_TO.items()}
+
+# Groups the full mode list under the quick-select family it belongs to, so the full Sound Mode
+# select can narrow itself to "modes related to the one currently active". Approximate grouping
+# based on Denon's classic Movie/Music/Game/Direct listening-mode families -- since the AVR
+# ignores modes it doesn't support anyway, a mode landing in the "wrong" group is harmless.
+SOUND_MODE_GROUPS = {
+    "Movie": ["Movie", "Standard", "Dolby Digital", "DTS Surround", "Mono Movie", "Virtual", "Matrix"],
+    "Music": ["Music", "Rock Arena", "Jazz Club", "Mch Stereo"],
+    "Game": ["Game", "Video Game"],
+    "Pure Direct": ["Pure Direct", "Direct", "Auto", "Stereo", "Left", "Right"],
+}
+SOUND_MODE_RAW_TO_GROUP = {
+    SOUND_MODE_TO[name]: group
+    for group, names in SOUND_MODE_GROUPS.items()
+    for name in names
+}
+
+# Modes that only mean something when the source actually carries that bitstream --
+# selecting "Dolby Digital" decode on a plain PCM/Analog source has nothing to decode.
+SOUND_MODE_REQUIRES_SOURCE_FAMILY = {
+    "Dolby Digital": "DOLBY",
+    "DTS Surround": "DTS",
+}
+
+
+def _source_bitstream_family(data: dict) -> str | None:
+    # Prefer the format derived from SYSDA (same as the Audio Category sensor) -- the raw
+    # SSINFAISSIG-based category can be stale, per the v0.3.1 fix.
+    cat = category_from_sysda(data.get("audio_format_raw")) or data.get("audio_category") or ""
+    cat = cat.upper()
+    if "DOLBY" in cat:
+        return "DOLBY"
+    if "DTS" in cat:
+        return "DTS"
+    return None
 
 
 def _db_option_to_value(option: str):
@@ -498,7 +534,6 @@ class DenonSoundModeQuickSelect(DenonBaseEntity, SelectEntity):
 class DenonSoundModeSelect(DenonBaseEntity, SelectEntity):
     _attr_name = "Sound Mode"
     _attr_icon = "mdi:surround-sound-5-1"
-    _attr_options = SOUND_MODE_OPTIONS
     _attr_entity_registry_enabled_default = False
 
     def __init__(self, coord, entry_id):
@@ -506,9 +541,32 @@ class DenonSoundModeSelect(DenonBaseEntity, SelectEntity):
         self._attr_unique_id = f"{entry_id}_sound_mode_full"
 
     @property
+    def options(self):
+        raw = (self.coordinator.data.get("sound_mode") or "").upper()
+        group = SOUND_MODE_RAW_TO_GROUP.get(raw)
+        options = list(SOUND_MODE_GROUPS.get(group, SOUND_MODE_OPTIONS))
+        current = SOUND_MODE_FROM.get(raw)
+        family = _source_bitstream_family(self.coordinator.data)
+        for name, needed_family in SOUND_MODE_REQUIRES_SOURCE_FAMILY.items():
+            if name in options and name != current and family != needed_family:
+                options.remove(name)
+        return options
+
+    @property
     def current_option(self):
         raw = self.coordinator.data.get("sound_mode")
         return SOUND_MODE_FROM.get((raw or "").upper())
+
+    @property
+    def extra_state_attributes(self):
+        raw = (self.coordinator.data.get("sound_mode") or "").upper()
+        return {
+            "raw_sound_mode": raw or None,
+            "mode_group": SOUND_MODE_RAW_TO_GROUP.get(raw),
+            "source_audio_category": category_from_sysda(self.coordinator.data.get("audio_format_raw"))
+                or self.coordinator.data.get("audio_category"),
+            "source_bitstream_family": _source_bitstream_family(self.coordinator.data),
+        }
 
     async def async_select_option(self, option):
         v = SOUND_MODE_TO.get(option)

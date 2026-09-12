@@ -43,9 +43,9 @@ Live information about the currently playing content, exposed as diagnostic sens
 
 These values change automatically as the source device (Blu-ray, streaming box, console) switches formats. Useful for verifying that Atmos, DTS:X, or 4K passthrough is actually reaching the AVR.
 
-#### Sound Mode *(new in v0.3.5)*
+#### Sound Mode *(added in v0.3.5, filtering added in v0.3.6)*
 - **Sound Mode (Quick)** -- Movie / Music / Game / Pure Direct, the four common quick-select modes
-- **Sound Mode** -- the full set of surround modes from the Denon IP control protocol (Auto, Standard, Direct, Stereo, Dolby Digital, DTS Surround, Mch Stereo, Virtual, Matrix, Rock Arena, Jazz Club, Mono Movie, Video Game, Left, Right). Hidden by default -- enable it if you want direct access to the less common modes. Availability of each mode depends on the current input's format; selecting an unsupported mode is ignored by the AVR. Set via telnet (`MS<mode>`).
+- **Sound Mode** -- the full set of surround modes from the Denon IP control protocol (Auto, Standard, Direct, Stereo, Dolby Digital, DTS Surround, Mch Stereo, Virtual, Matrix, Rock Arena, Jazz Club, Mono Movie, Video Game, Left, Right). Hidden by default -- enable it if you want direct access to the less common modes. Its option list automatically narrows twice: first to the modes related to whichever quick-select family (Movie/Music/Game/Pure Direct) is currently active, and then by the currently playing source -- **Dolby Digital** and **DTS Surround** only appear when the source's detected `Audio Category` actually carries that bitstream, since decoding Dolby on a plain PCM/Analog source has nothing to decode. Selecting a different quick mode, or changing source, changes which subset it shows next refresh. Availability of each mode also still depends on receiver/input specifics not modeled here; selecting an unsupported mode is ignored by the AVR. Set via telnet (`MS<mode>`).
 
 #### Zone Power
 - **Main Zone Power** -- on / off
@@ -375,6 +375,7 @@ These icons have been prepared for submission to the https://github.com/home-ass
 
 ### Version history
 
+- **v0.3.6** -- The full **Sound Mode** select now filters its option list contextually: it narrows to the modes belonging to the currently active quick-select family (Movie/Music/Game/Pure Direct), and hides **Dolby Digital** / **DTS Surround** unless the currently playing source actually carries that bitstream (checked via the same SYSDA-derived category the Audio Category sensor uses, avoiding the stale-category pitfall fixed in v0.3.1). Exposes `raw_sound_mode`, `mode_group`, `source_audio_category`, and `source_bitstream_family` as attributes for visibility into the filtering. Also deduplicated the "no zone powered on" guard shared by all settings writes.
 - **v0.3.5** -- Added **Sound Mode** select entities to switch the AVR's surround mode: **Sound Mode (Quick)** (Movie / Music / Game / Pure Direct) and **Sound Mode** (the full set of Denon IP protocol surround modes, hidden by default). Set via telnet `MS<mode>`.
 - **v0.3.3** -- Added three more Now Playing sensors: **Sound Mode** (what the AVR is doing with audio -- STEREO, MOVIE, PURE DIRECT, DOLBY ATMOS, etc. via telnet `MS?`), **Input Signal Type** (physical audio path -- eARC / HDMI / Analog / Optical via telnet `SD?`), and **Output Channels** (derived channel layout like 2.1, 5.1, 7.1.4). Completes the input -> processing -> output signal chain picture.
 - **v0.3.2** -- Added three more Now Playing sensors: **Sound Mode** (what the AVR is doing with audio -- STEREO, MOVIE, PURE DIRECT, DOLBY ATMOS, etc. via telnet `MS?`), **Input Signal Type** (physical audio path -- eARC / HDMI / Analog / Optical via telnet `SD?`), and **Output Channels** (derived channel layout like 2.1, 5.1, 7.1.4). Completes the input -> processing -> output signal chain picture.

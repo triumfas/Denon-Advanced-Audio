@@ -34,17 +34,17 @@ class DenonAdvancedAudioApi:
         url = f"{self.base_url}/ajax/{path}/get_config?type={xml_type}"
         return await self._http_get_text(url)
 
-    async def _ajax_set(self, path: str, xml_type: int, xml_payload: str) -> None:
-        # Check if at least one zone is powered on
+    async def _require_zone_powered(self, action: str) -> None:
         zp = await self.async_get_zone_power()
         any_on = any(v == "1" for v in zp.values() if v is not None)
-        
         if not any_on:
             raise HomeAssistantError(
-                "Cannot change this setting because the receiver has no zone powered on. "
+                f"Cannot {action} because the receiver has no zone powered on. "
                 "Turn on the receiver (or a zone) and try again."
             )
 
+    async def _ajax_set(self, path: str, xml_type: int, xml_payload: str) -> None:
+        await self._require_zone_powered("change this setting")
 
         data = quote(xml_payload, safe="")
         url = f"{self.base_url}/ajax/{path}/set_config?type={xml_type}&data={data}"
@@ -321,12 +321,7 @@ class DenonAdvancedAudioApi:
         return await self._telnet.async_query_now_playing()
 
     async def async_set_sound_mode(self, mode: str) -> None:
-        zp = await self.async_get_zone_power()
-        if not any(v == "1" for v in zp.values() if v is not None):
-            raise HomeAssistantError(
-                "Cannot change sound mode because the receiver has no zone powered on. "
-                "Turn on the receiver (or a zone) and try again."
-            )
+        await self._require_zone_powered("change sound mode")
         try:
             await self._telnet.async_send_command(f"MS{mode}")
         except (asyncio.TimeoutError, OSError) as err:
