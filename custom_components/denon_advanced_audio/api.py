@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import asyncio
+import logging
 import re
 from urllib.parse import quote
 
@@ -8,6 +9,10 @@ import aiohttp
 from homeassistant.exceptions import HomeAssistantError
 
 from .telnet import DenonTelnetClient, extract_host
+
+_LOGGER = logging.getLogger(__name__)
+
+
 class DenonAdvancedAudioApi:
     def __init__(self, base_url: str, verify_ssl: bool, session: aiohttp.ClientSession | None = None) -> None:
         self.base_url = base_url.rstrip("/")
@@ -218,6 +223,36 @@ class DenonAdvancedAudioApi:
         url = f"{self.base_url}/ajax/globals/set_config?type=4&data={data}"
         await self._http_get_text(url)
         await asyncio.sleep(0.3)
+
+    _ZONE_KEY_TO_RESULT = {"MainZone": "main", "Zone2": "zone2", "Zone3": "zone3", "Zone4": "zone4"}
+    _TELNET_ZONE_POWER = {"MainZone": ("ZMON", "ZMOFF"), "Zone2": ("Z2ON", "Z2OFF"), "Zone3": ("Z3ON", "Z3OFF")}
+
+    async def async_wait_zone_power(self, zone_key: str, on: bool, timeout: float = 3.0) -> bool:
+        """Poll the zone power over HTTP until it reaches the wanted state (True) or the timeout passes (False)."""
+        result_key = self._ZONE_KEY_TO_RESULT.get(zone_key)
+        loop = asyncio.get_event_loop()
+        deadline = loop.time() + timeout
+        while True:
+            v = (await self.async_get_zone_power()).get(result_key)
+            if v is not None and (v == "1") == on:
+                return True
+            if loop.time() >= deadline:
+                return False
+            await asyncio.sleep(0.5)
+
+    async def async_telnet_zone_power(self, zone_key: str, on: bool) -> bool:
+        """Fallback for zone power: the /ajax/ `Power=1` request is sometimes accepted (HTTP 200) but ignored by the receiver
+        (seen on an AVR-X3700H in standby), while the telnet zone commands (ZMON/ZMOFF, Z2ON/Z2OFF, ...) always work.
+        Deliberately uses the per-zone commands, not PWON, so turning on the main zone doesn't also turn on Zone 2."""
+        cmds = self._TELNET_ZONE_POWER.get(zone_key)
+        if not cmds:
+            return False
+        try:
+            await self._telnet.async_send_command(cmds[0] if on else cmds[1])
+            return True
+        except Exception as err:
+            _LOGGER.warning("Telnet zone power fallback for %s failed: %s", zone_key, err)
+            return False
 
     async def async_get_eco_config(self) -> dict:
         result = {"mode": None, "power_on_default": None, "on_screen_display": None,

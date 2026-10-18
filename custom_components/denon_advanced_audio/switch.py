@@ -143,11 +143,18 @@ class DenonZonePowerSwitch(DenonBaseEntity, SwitchEntity):
         return bool(base_available) and v is not None
 
     async def async_turn_on(self, **kwargs):
-        await self.coordinator.api.async_set_zone_power(self._zone_key, True)
-        await self.coordinator.async_request_refresh()
+        await self._set_power(True)
 
     async def async_turn_off(self, **kwargs):
-        await self.coordinator.api.async_set_zone_power(self._zone_key, False)
+        await self._set_power(False)
+
+    async def _set_power(self, on: bool):
+        api = self.coordinator.api
+        await api.async_set_zone_power(self._zone_key, on)
+        # The HTTP request can be accepted but ignored (receiver in standby): verify, then fall back to telnet.
+        if not await api.async_wait_zone_power(self._zone_key, on, timeout=3.0):
+            if await api.async_telnet_zone_power(self._zone_key, on):
+                await api.async_wait_zone_power(self._zone_key, on, timeout=6.0)
         await self.coordinator.async_request_refresh()
 
 
