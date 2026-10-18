@@ -150,11 +150,13 @@ class DenonZonePowerSwitch(DenonBaseEntity, SwitchEntity):
 
     async def _set_power(self, on: bool):
         api = self.coordinator.api
-        await api.async_set_zone_power(self._zone_key, on)
-        # The HTTP request can be accepted but ignored (receiver in standby): verify, then fall back to telnet.
-        if not await api.async_wait_zone_power(self._zone_key, on, timeout=3.0):
-            if await api.async_telnet_zone_power(self._zone_key, on):
-                await api.async_wait_zone_power(self._zone_key, on, timeout=6.0)
+        # Telnet first: it answers in well under a second and, unlike the /ajax/ Power request (accepted with HTTP 200 but
+        # ignored by the receiver in some standby states), it always works. Fast power-up matters: the receiver's HDMI
+        # re-sync must finish before the TV shows its picture. The HTTP request is the fallback (telnet busy/unreachable).
+        if not (await api.async_telnet_zone_power(self._zone_key, on)
+                and await api.async_wait_zone_power(self._zone_key, on, timeout=4.0)):
+            await api.async_set_zone_power(self._zone_key, on)
+            await api.async_wait_zone_power(self._zone_key, on, timeout=6.0)
         await self.coordinator.async_request_refresh()
 
 
