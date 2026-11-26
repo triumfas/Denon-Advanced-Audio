@@ -1,6 +1,5 @@
 {
   "name": "Denon Advanced Audio",
   "render_readme": true,
-  "domains": ["select", "sensor", "switch", "number"],
   "homeassistant": "2026.3.0"
 }

@@ -1,6 +1,7 @@
 {
   "domain": "denon_advanced_audio",
   "name": "Denon Advanced Audio",
+  "categories": ["media_entertainment.speakers_audio"],
   "codeowners": ["@triumfas"],
   "config_flow": true,
   "documentation": "https://github.com/triumfas/Denon-Advanced-Audio",
