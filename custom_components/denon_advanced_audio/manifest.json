@@ -2,12 +2,12 @@
   "domain": "denon_advanced_audio",
   "name": "Denon Advanced Audio",
   "categories": ["media_entertainment.speakers_audio"],
-  "codeowners": ["@triumfas"],
+  "codeowners": ["@tadasburovas"],
   "config_flow": true,
-  "documentation": "https://github.com/triumfas/Denon-Advanced-Audio",
+  "documentation": "https://github.com/tadasburovas/Denon-Advanced-Audio",
   "integration_type": "device",
   "iot_class": "local_polling",
-  "issue_tracker": "https://github.com/triumfas/Denon-Advanced-Audio/issues",
+  "issue_tracker": "https://github.com/tadasburovas/Denon-Advanced-Audio/issues",
   "requirements": [],
-  "version": "0.3.13"
+  "version": "0.3.14"
 }

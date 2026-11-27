@@ -152,7 +152,7 @@ All entities poll the AVR every 30 seconds by default. Diagnostic sensors are sh
 If it is not listed yet, add it as a custom repository:
 
 - Open **HACS** -> three-dot menu -> **Custom repositories** (in the Marketplace: **Add from link**)
-- **Repository**: `triumfas/Denon-Advanced-Audio`, **Category**: Integration
+- **Repository**: `tadasburovas/Denon-Advanced-Audio`, **Category**: Integration
 - Click **ADD**, then download and restart as above
 
 #### Option 2 -- Manual
@@ -376,6 +376,7 @@ These icons have been prepared for submission to the https://github.com/home-ass
 
 ### Version history
 
+- **v0.3.14** -- Repository moved to `tadasburovas/Denon-Advanced-Audio` (GitHub account rename); manifest links and codeowner updated. No functional changes.
 - **v0.3.13** -- Marketplace/HACS readiness: added hassfest and HACS validation CI, `integration_type` in the manifest, and updated install instructions. No functional changes.
 - **v0.3.12** -- Zone power switches now try **telnet first** (`ZMON`/`ZMOFF`, `Z2ON`/`Z2OFF`, `Z3ON`/`Z3OFF`) and verify over HTTP, and only fall back to the `/ajax/` request if telnet is busy or the zone didn't change. v0.3.11 tried HTTP first and waited 3 s before falling back, so powering the receiver on took ~3.7 s when HTTP was being ignored; telnet-first takes about a second, which lets automations power the receiver up while a TV is still booting.
 - **v0.3.11** -- **Zone power switches no longer silently fail.** On an AVR-X3700H in standby the `/ajax/` `Power=1` request is accepted (HTTP 200, empty body) but ignored, so the zone stayed off. The switch now verifies the zone power over HTTP after the request and, if it didn't change within 3 s, falls back to the telnet zone commands (`ZMON`/`ZMOFF` for the main zone, `Z2ON`/`Z2OFF`, `Z3ON`/`Z3OFF`) - deliberately not `PWON`, which also turns Zone 2 on. Verified on real hardware: telnet `ZMON` turns the zone on where the HTTP request did nothing.
