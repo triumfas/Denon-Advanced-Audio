@@ -361,19 +361,6 @@ The network and Now Playing sensors use HA's Diagnostic category -- they appear 
 - Model comes from **Network -> Friendly Name -> Default Name** on the AVR
 - Device name comes from **Network -> Friendly Name -> Current Name** (the one you can rename in the AVR web UI or Denon app)
 
-### Branding
-
-Icons for this integration are available in the `brands/` folder:
-
-| File | Size | Purpose |
-|---|---|---|
-| brands/icon.png | 256 x 256 | Integration icon |
-| brands/icon@2x.png | 512 x 512 | High-resolution icon |
-| brands/logo.png | 1024 x 256 | Integration logo (banner) |
-| brands/logo@2x.png | 2048 x 512 | High-resolution logo |
-
-These icons have been prepared for submission to the https://github.com/home-assistant/brands repository so Home Assistant and HACS can display them automatically once merged.
-
 ### Version history
 
 - **v0.3.14** -- Repository moved to `tadasburovas/Denon-Advanced-Audio` (GitHub account rename); manifest links and codeowner updated. No functional changes.
