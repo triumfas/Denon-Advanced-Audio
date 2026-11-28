@@ -363,6 +363,7 @@ The network and Now Playing sensors use HA's Diagnostic category -- they appear 
 
 ### Version history
 
+- **v0.3.15** -- Added **Reconfigure**: change the receiver address (e.g. after its IP changed) from the integration menu without deleting it, so entities and history are kept.
 - **v0.3.14** -- Repository moved to `tadasburovas/Denon-Advanced-Audio` (GitHub account rename); manifest links and codeowner updated. No functional changes.
 - **v0.3.13** -- Marketplace/HACS readiness: added hassfest and HACS validation CI, `integration_type` in the manifest, and updated install instructions. No functional changes.
 - **v0.3.12** -- Zone power switches now try **telnet first** (`ZMON`/`ZMOFF`, `Z2ON`/`Z2OFF`, `Z3ON`/`Z3OFF`) and verify over HTTP, and only fall back to the `/ajax/` request if telnet is busy or the zone didn't change. v0.3.11 tried HTTP first and waited 3 s before falling back, so powering the receiver on took ~3.7 s when HTTP was being ignored; telnet-first takes about a second, which lets automations power the receiver up while a TV is still booting.

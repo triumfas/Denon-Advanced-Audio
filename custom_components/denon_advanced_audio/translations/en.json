@@ -8,6 +8,14 @@
           "base_url": "Base URL",
           "verify_ssl": "Verify SSL certificate"
         }
+      },
+      "reconfigure": {
+        "title": "Reconfigure Denon Advanced Audio",
+        "description": "Change the receiver address, for example after its IP address changed. Existing entities are kept.",
+        "data": {
+          "base_url": "Base URL",
+          "verify_ssl": "Verify SSL certificate"
+        }
       }
     },
     "error": {
@@ -16,7 +24,8 @@
       "unknown": "Unexpected error."
     },
     "abort": {
-      "already_configured": "This Denon AVR is already configured."
+      "already_configured": "This Denon AVR is already configured.",
+      "reconfigure_successful": "The receiver address was updated."
     }
   }
 }
