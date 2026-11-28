@@ -148,6 +148,7 @@ All entities poll the AVR every 30 seconds by default. Diagnostic sensors are sh
 - Search for **Denon Advanced Audio**
 - Click **Download**
 - Restart Home Assistant
+
 #### Option 2 -- Manual
 
 - Download this repository as a ZIP
